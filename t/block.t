@@ -34,8 +34,7 @@ sub ok {
     ++$ok_count;
 }
 
-use AppConfig::Const qw(:expand);
-use AppConfig::State;
+use AppConfig qw(:expand :argcount);
 use AppConfig::File;
 $loaded = 1;
 ok(1);
@@ -45,7 +44,9 @@ ok(1);
 # create new AppConfig::State and AppConfig::File objects
 #
 
-my $state = AppConfig::State->new(
+my $state = AppConfig::State->new({
+	    GLOBAL => { ARGCOUNT => ARGCOUNT_ONE },
+	},
 	'foo',
 	'bar',
 	'dir_home', { EXPAND => EXPAND_ENV },
@@ -59,26 +60,26 @@ my $cfgfile = AppConfig::File->new($state);
 # $state->_debug(0);
 
 #2 - #3: test that state and cfgfile got instantiated correctly
-ok(defined $state);
-ok(defined $cfgfile);
+ok( defined $state   );
+ok( defined $cfgfile );
 
 #4: read the config file (from __DATA__)
-ok($cfgfile->read(\*DATA));
+ok( $cfgfile->parse(\*DATA) );
 
 
 #5 - #6: test simple variable values got set correctly
-ok($state->foo() eq 'This is foo');
-ok($state->bar() eq 'This is bar');
+ok( $state->foo() eq 'This is foo' );
+ok( $state->bar() eq 'This is bar' );
 
 #7 - #8: test [dir] block variables got set correctly
-ok($state->dir_home() eq $ENV{ HOME });
-ok($state->dir_html() eq ($ENV{ HOME } . '/public_html'));
+ok( $state->dir_home() eq  $ENV{ HOME }                   );
+ok( $state->dir_html() eq ($ENV{ HOME } . '/public_html') );
 
 
 
 #========================================================================
 # the rest of the file comprises the sample configuration information
-# that gets read by read()
+# that gets read by parse()
 #
 
 __DATA__

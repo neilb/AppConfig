@@ -20,9 +20,12 @@ use strict;
 # This line will help perl find the modules if you haven't installed them
 # yet.  It assumes you've run a "perl Makefile.PL; make" in the parent dir.
 use lib '../blib/lib';
+
 use AppConfig;
 
-my $config = AppConfig->new('verbose', 'debug', 'logfile', 'summary');
+my $config = AppConfig->new('verbose', 'debug', 
+    'logfile' => { ARGCOUNT => 1 },
+    'summary' => { ARGCOUNT => 1 });
 
 $config->file('sample.config');
 

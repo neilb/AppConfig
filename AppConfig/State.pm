@@ -20,6 +20,8 @@
 #   form: e.g. "foo|bar|baz=i@" and extract the relevant configuration 
 #   information from it.
 #
+# * Fix ARGS.
+#
 # * Perhaps allow a callback to be installed which is called *instead* of 
 #   the get() and set() methods (or rather, is called by them).
 #
@@ -36,7 +38,7 @@
 #
 #----------------------------------------------------------------------------
 #
-# $Id: State.pm,v 0.2 1998/10/08 19:54:57 abw Exp abw $
+# $Id: State.pm,v 1.50 1998/10/21 09:25:52 abw Exp abw $
 #
 #============================================================================
 
@@ -47,12 +49,15 @@ require 5.004;
 use strict;
 use vars qw( $VERSION $AUTOLOAD $DEBUG );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 0.2 $ =~ /(\d+)\.(\d+)/);
+# need access to AppConfig::ARGCOUNT_*
+use AppConfig;
+
+$VERSION = sprintf("%d.%02d", q$Revision: 1.50 $ =~ /(\d+)\.(\d+)/);
 $DEBUG   = 0;
 
 # internal per-variable hashes that AUTOLOAD should provide access to
 my %METHVARS;
-   @METHVARS{ qw( EXPAND ARGS ) } = ();
+   @METHVARS{ qw( EXPAND ARGS ARGCOUNT ) } = ();
 
 # internal values that AUTOLOAD should provide access to
 my %METHFLAGS;
@@ -91,8 +96,9 @@ sub new {
 	DEFAULT    => { },     # default values
 	ALIAS      => { },     # known aliases  ALIAS => VARIABLE
 	ALIASES    => { },     # reverse alias lookup VARIABLE => ALIASES
-	ARGS       => { },     # variable args (for AppConfig::GetOpt, etc)
-	EXPAND     => { },     # variable expansion (for AppConfig::File)
+	ARGCOUNT   => { },     # arguments expected
+	ARGS       => { },     # specific argument pattern (AppConfig::Getopt)
+	EXPAND     => { },     # variable expansion (AppConfig::File)
     #   CMDARG     => { },     # cmd line argument pattern (deprecated)
 	VALIDATE   => { },     # validation regexen or functions
 	ACTION     => { },     # callback functions for when variable is set
@@ -135,17 +141,32 @@ sub new {
 # configuration, although any default parameters as specified in the 
 # GLOBAL option will apply.
 #
+# The $variable value may contain an alias/args definition in compact
+# format, such as "Foo|Bar=1".  
+#
 # A warning is issued (via _error()) if an invalid option is specified.
 #
 #========================================================================
 
 sub define {
     my $self = shift;
-    my ($var, $opt, $cfg);
+    my ($var, $opt, $val, $cfg, @names);
 
     while (@_) {
 	$var = shift;
-	$cfg = ref($_[0]) eq 'HASH' ? shift : undef;
+	$cfg = ref($_[0]) eq 'HASH' ? shift : { };
+
+	# variable may be specified in compact format, 'foo|bar=i@'
+	if ($var =~ s/(.+?)([!+=:].*)/$1/) {
+	    $cfg->{ ARGS } = length $2 ? $2 : 0;
+
+	    # TODO: intuit ARGCOUNT from ARGS
+	}
+
+	# split aliases out
+	@names = split(/\|/, $var);
+	$var = shift @names;
+	$cfg->{ ALIAS } = [ @names ] if @names;
 
     	# variable name gets folded to lower unless CASE sensitive
 	$var = lc $var unless $self->{ CASE };
@@ -153,60 +174,57 @@ sub define {
 	# activate $variable (so it does 'exist()') 
 	$self->{ VARIABLE }->{ $var } = undef;
 
-	# use defaults from globally set values
-	foreach (keys %{ $self->{ GLOBAL } }) {
-    	    $self->{ uc $_ }->{ $var } = $self->{ GLOBAL }->{ $_ };
-	}
+	# merge GLOBAL and variable-specific configurations
+	$cfg = { %{ $self->{ GLOBAL } }, %$cfg };
 
 	# examine each variable configuration parameter
-	foreach $opt (keys %$cfg) {
+	while (($opt, $val) = each %$cfg) {
+	    $opt = uc $opt;
 
-	    # DEFAULT, VALIDATE, EXPAND and ARGS are stored as they are;
-	    $opt =~ /^DEFAULT|VALIDATE|EXPAND|ARG(S|COUNT)$/i && do {
-		# ARGCOUNT is an alias for ARGS for backwards compatibility
-		if (uc $opt eq 'ARGCOUNT') {
-		    $self->{ ARGS }->{ $var } = $cfg->{ $opt };
-		}
-		else {
-		    $self->{ uc $opt }->{ $var } = $cfg->{ $opt };
-		}
+	    # DEFAULT, VALIDATE, EXPAND, ARGS and ARGCOUNT are stored as 
+	    # they are;
+	    $opt =~ /^DEFAULT|VALIDATE|EXPAND|ARGS|ARGCOUNT$/ && do {
+		$self->{ $opt }->{ $var } = $val;
 		next;
 	    };
 
 	    # CMDARG has been deprecated
-	    $opt =~ /^CMDARG$/i && do {
+	    $opt eq 'CMDARG' && do {
 		$self->_error("CMDARG has been deprecated.  "
 			. "Please use an ALIAS if required.");
 		next;
 	    };
 
 	    # ACTION should be a code ref
-	    $opt =~ /^ACTION$/i && do {
-		unless (ref($cfg->{ $opt }) eq 'CODE') {
+	    $opt eq 'ACTION' && do {
+		unless (ref($val) eq 'CODE') {
 		    $self->_error("'$opt' value is not a code reference");
 		    next;
 		};
 
 		# store code ref, forcing keyword to upper case
-		$self->{ ACTION }->{ $var } = $cfg->{ $opt };
+		$self->{ ACTION }->{ $var } = $val;
 
 		next;
 	    };
 
 	    # ALIAS creates alias links to the variable name
-	    $opt =~ /^ALIAS$/i && do {
-		my $alias = $cfg->{ $opt };
+	    $opt eq 'ALIAS' && do {
 
-		# coerce $alias to an array if not already so
-		$alias = [ split(/\|/, $alias) ]
-		    unless ref($alias) eq 'ARRAY';
+		# coerce $val to an array if not already so
+		$val = [ split(/\|/, $val) ]
+		    unless ref($val) eq 'ARRAY';
+   
+		# fold to lower case unless CASE sensitivity set
+		unless ($self->{ CASE }) {
+		    @$val = map { lc } @$val;
+		}
 
 		# store list of aliases...
-		$self->{ ALIASES }->{ $var } = $alias;
+		$self->{ ALIASES }->{ $var } = $val;
 
 		# ...and create ALIAS => VARIABLE lookup hash entries
-		foreach my $a (@$alias) {
-		    $a = lc $a if $self->{ CASE };
+		foreach my $a (@$val) {
 		    $self->{ ALIAS }->{ $a } = $var;
 		}
 
@@ -244,10 +262,13 @@ sub define {
 sub get {
     my $self     = shift;
     my $variable = shift;
+    my $negate   = 0;
+    my $value;
 
 
     # _varname returns variable name after aliasing and case conversion
-    $variable = $self->_varname($variable);
+    # $negate indicates if the name got converted from "no<var>" to "<var>"
+    $variable = $self->_varname($variable, \$negate);
 
     # check the variable has been defined
     unless (exists($self->{ VARIABLE }->{ $variable })) {
@@ -263,8 +284,9 @@ sub get {
 	  "\n"
 	if $DEBUG;
 
-    # return variable value
-    $self->{ VARIABLE }->{ $variable };
+    # return variable value, possibly negated if the name was "no<var>"
+    $value = $self->{ VARIABLE }->{ $variable };
+    return $negate ? !$value : $value;
 }
 
 
@@ -285,19 +307,28 @@ sub set {
     my $self     = shift;
     my $variable = shift;
     my $value    = shift;
+    my $negate   = 0;
+    my $create;
     
 
     # _varname returns variable name after aliasing and case conversion
-    $variable = $self->_varname($variable);
+    # $negate indicates if the name got converted from "no<var>" to "<var>"
+    $variable = $self->_varname($variable, \$negate);
 
     # check the variable exists
-    unless (exists($self->{ VARIABLE }->{ $variable })) {
-
+    if (exists($self->{ VARIABLE }->{ $variable })) {
+	# variable found, so apply any value negation
+	$value = $value ? 0 : 1 if $negate;
+    }
+    else {
 	# auto-create variable if CREATE is 1 or a pattern matching 
 	# the variable name (real name, not an alias)
-	if (my $create = $self->{ CREATE }) {
-	    $self->define($variable)
-		if ($create eq '1' || $variable =~ /$create/);
+	$create = $self->{ CREATE };
+	if (defined $create
+		&& ($create eq '1' || $variable =~ /$create/)) {
+	    $self->define($variable);
+
+	    print STDERR "Auto-created $variable\n" if $DEBUG;
 	}
 	else {
 	    $self->_error("$variable: no such variable");
@@ -319,10 +350,29 @@ sub set {
 	  ")\n"
 	if $DEBUG;
 
-    # cast it in stone...
-    $self->{ VARIABLE }->{ $variable } = $value;
 
-    # ...and call any ACTION function bound to this variable
+    # set the variable value depending on its ARGCOUNT
+    my $argcount = $self->{ ARGCOUNT }->{ $variable };
+    $argcount = AppConfig::ARGCOUNT_ONE unless defined $argcount;
+
+    if ($argcount eq AppConfig::ARGCOUNT_LIST) {
+	# push value onto the end of the list
+	push(@{ $self->{ VARIABLE }->{ $variable } }, $value);
+    }
+    elsif ($argcount eq AppConfig::ARGCOUNT_HASH) {
+	# insert "<key>=<value>" data into hash 
+	my ($k, $v) = split(/\s*=\s*/, $value, 2);
+	# strip quoting
+	$v =~ s/^(['"])(.*)\1$/$2/ if defined $v;
+	$self->{ VARIABLE }->{ $variable }->{ $k } = $v;
+    }
+    else {
+	# set simple variable
+	$self->{ VARIABLE }->{ $variable } = $value;
+    }
+
+
+    # call any ACTION function bound to this variable
     return &{ $self->{ ACTION }->{ $variable } }($self, $variable, $value)
     	if (exists($self->{ ACTION }->{ $variable }));
 
@@ -331,6 +381,40 @@ sub set {
 }
 
 
+
+#========================================================================
+#
+# varlist($criteria, $filter)
+#
+# Returns a hash array of all variables and values whose real names 
+# match the $criteria regex pattern passed as the first parameter.
+# If $filter is set to any true value, the keys of the hash array 
+# (variable names) will have the $criteria part removed.  This allows 
+# the caller to specify the variables from one particular [block] and
+# have the "block_" prefix removed, for example.  
+# 
+#========================================================================
+
+sub varlist {
+    my $self     = shift;
+    my $criteria = shift;
+    my $strip    = shift;
+
+
+    $criteria = "" unless defined $criteria;
+
+    # extract relevant keys and slice out corresponding values
+    my @keys = grep(/$criteria/, keys %{ $self->{ VARIABLE } });
+    my @vals = @{ $self->{ VARIABLE } }{ @keys };
+    my %set;
+
+    # clean off the $criteria part if $strip is set
+    @keys = map { s/$criteria//; $_ } @keys if $strip;
+
+    # slice values into the target hash 
+    @set{ @keys } = @vals;
+    return %set;
+}
 
 
     
@@ -382,9 +466,9 @@ sub AUTOLOAD {
 	    $variable = $self->_varname($variable);
 
 	    # check we've got a valid variable
-	    $self->_error("$variable: no such variable or method"), 
-		    return undef
-		unless exists($self->{ VARIABLE }->{ $variable });
+#	    $self->_error("$variable: no such variable or method"), 
+#		    return undef
+#		unless exists($self->{ VARIABLE }->{ $variable });
 
 	    # return attribute
 	    return $self->{ $attrib }->{ $variable };
@@ -432,13 +516,6 @@ sub _configure {
 	    # any error checking on the values they contain (but should?).
             foreach my $global ( keys %{ $cfg->{ $opt } } )  {
 
-		# ARGCOUNT is backwards compatibility for ARGS
-		if (uc $global eq 'ARGCOUNT') {
-		    $cfg->{ $opt }->{ ARGS } = $cfg->{ $opt }->{ $global };
-		    delete $cfg->{ $opt }->{ $global };
-		    next;
-		}
-
 		# continue if the attribute is ok to be GLOBAL 
                 next if ($global =~ /(^$global_ok$)/io);
 
@@ -476,7 +553,7 @@ sub _configure {
 
 #========================================================================
 #
-# _varname($variable)
+# _varname($variable, \$negated)
 #
 # Variable names are treated case-sensitively or insensitively, depending 
 # on the value of $self->{ CASE }.  When case-insensitive ($self->{ CASE } 
@@ -485,13 +562,22 @@ sub _configure {
 # (variable) to lower case if $self->{ CASE } isn't set.  _varname() also 
 # expands a variable alias to the name of the target variable.  
 #
+# Variables with an ARGCOUNT of ARGCOUNT_ZERO may be specified as 
+# "no<var>" in which case, the intended value should be negated.  The 
+# leading "no" part is stripped from the variable name.  A reference to 
+# a scalar value can be passed as the second parameter and if the 
+# _varname() method identified such a variable, it will negate the value.  
+# This allows the intended value or a simple negate flag to be passed by
+# reference and be updated to indicate any negation activity taking place.
+#
 # The (possibly modified) variable name is returned.
 #
 #========================================================================
 
 sub _varname {
-    my $self = shift;
+    my $self     = shift;
     my $variable = shift;
+    my $negated  = shift;
 
     # convert to lower case if case insensitive
     $variable = $self->{ CASE } ? $variable : lc $variable;
@@ -499,6 +585,24 @@ sub _varname {
     # get the actual name if this is an alias
     $variable = $self->{ ALIAS }->{ $variable }
 	if (exists($self->{ ALIAS }->{ $variable }));
+
+    # if the variable doesn't exist, we can try to chop off a leading 
+    # "no" and see if the remainder matches an ARGCOUNT_ZERO variable
+    unless (exists($self->{ VARIABLE }->{ $variable })) {
+
+	# see if the variable is specified as "no<var>"
+	if ($variable =~ /^no(.*)/) {
+	    # see if the real variable (minus "no") exists and it
+	    # has an ARGOUNT of ARGCOUNT_NONE (or no ARGCOUNT at all)
+	    my $novar = $self->_varname($1);
+	    if (exists($self->{ VARIABLE }->{ $novar })
+		    && ! $self->{ ARGCOUNT }->{ $novar }) {
+		# set variable name and negate value 
+		$variable = $novar;
+		$$negated = ! $$negated if defined $negated;
+	    }
+	}
+    }
    
     # return the variable name
     $variable;
@@ -524,8 +628,22 @@ sub _default {
 
     # check the variable exists
     if (exists($self->{ VARIABLE }->{ $variable })) {
-	return $self->{ VARIABLE }->{ $variable } 
+
+	# set variable value to the default scalar, an empty list or empty
+	# hash array, depending on its ARGCOUNT value
+	my $argcount = $self->{ ARGCOUNT }->{ $variable };
+	$argcount = AppConfig::ARGCOUNT_ONE unless defined $argcount;
+
+	if ($argcount == AppConfig::ARGCOUNT_LIST) {
+	    return $self->{ VARIABLE }->{ $variable } = [ ];
+	}
+	elsif ($argcount == AppConfig::ARGCOUNT_HASH) {
+	    return $self->{ VARIABLE }->{ $variable } = { };
+	}
+	else {
+	    return $self->{ VARIABLE }->{ $variable } 
 		    = $self->{ DEFAULT }->{ $variable };
+	}
     }
     else {
 	$self->_error("$variable: no such variable");
@@ -746,7 +864,7 @@ sub _dump_var {
 		    : "<undef>";
 
     # the rest of the values can be read straight out of their hashes
-    foreach my $param (qw( DEFAULT ARGS VALIDATE ACTION EXPAND )) {
+    foreach my $param (qw( DEFAULT ARGCOUNT VALIDATE ACTION EXPAND )) {
 	printf STDERR "    %-12s => %s\n", $param, 
 		defined($self->{ $param }->{ $var }) 
 		    ? $self->{ $param }->{ $var } 
@@ -804,8 +922,7 @@ __END__
 
 =head1 NAME
 
-AppConfig::State - Perl5 module for maintaining the state of an application
-configuration.
+AppConfig::State - Perl5 module for maintaining the state of an application configuration.
 
 =head1 SYNOPSIS
 
@@ -815,6 +932,7 @@ configuration.
 
     $state->define("foo");            # very simple variable definition
     $state->define("bar", \%varcfg);  # variable specific configuration
+    $state->define("foo|bar=i@");     # compact format
 
     $state->set("foo", 123);          # trivial set/get examples
     $state->get("foo");      
@@ -840,8 +958,8 @@ appear in your Perl script:
 
      use AppConfig::State;
 
-The AppConfig::State module is used automatically if you use the
-AppConfig module.
+The AppConfig::State module is loaded automatically by the new()
+constructor of the AppConfig module.
       
 AppConfig::State is implemented using object-oriented methods.  A 
 new AppConfig::State object is created and initialised using the 
@@ -860,6 +978,11 @@ configuration options:
 	ERROR     => \&my_error,
     } );
 
+The new() constructor of the AppConfig module automatically passes all 
+parameters to the AppConfig::State new() constructor.  Thus, any global 
+configuration values and variable definitions for AppConfig::State are 
+also applicable to AppConfig.
+
 The following configuration options may be specified.  
 
 =over 4
@@ -875,7 +998,7 @@ to 0 and thus "Variable", "VARIABLE" and "VaRiAbLe" are all treated as
 
 By default, CREATE is turned off meaning that all variables accessed via
 set() (which includes access via shortcut such as 
-C<$state->variable($value)> which delegates to set()) must previously 
+C<$state-E<gt>variable($value)> which delegates to set()) must previously 
 have been defined via define().  When CREATE is set to 1, calling 
 set($variable, $value) on a variable that doesn't exist will cause it 
 to be created automatically.
@@ -893,6 +1016,9 @@ In a config file:
 
     [define]
     name = fred           # define_name gets created automatically
+
+    [other]
+    name = john           # other_name doesn't - warning raised
 
 Note that a regex pattern specified in CREATE is applied to the real 
 variable name rather than any alias by which the variables may be 
@@ -923,7 +1049,7 @@ any additional values, as per printf(3C).
 
 Turns debugging on or off when set to 1 or 0 accordingly.  Debugging may 
 also be activated by calling _debug() as an object method 
-(C<$state->_debug(1)>) or as a package function 
+(C<$state-E<gt>_debug(1)>) or as a package function 
 (C<AppConfig::State::_debug(1)>), passing in a true/false value to 
 set the debugging state accordingly.  The package variable 
 $AppConfig::State::DEBUG can also be set directly.  
@@ -939,21 +1065,21 @@ changes to the AppConfig::State debug value will not affect them.
 
 =item GLOBAL 
 
-The GLOBAL option allows default values to be set for the DEFAULT, ARGS, 
+The GLOBAL option allows default values to be set for the DEFAULT, ARGCOUNT, 
 EXPAND, VALIDATE and ACTION options for any subsequently defined variables.
 
     $state = AppConfig::State->new({
 	GLOBAL => {
-	    DEFAULT => '<undef>',     # default value for new vars
-	    ARGS    => 1,             # vars expect an argument
-	    ACTION  => \&my_set_var,  # callback when vars get set
+	    DEFAULT  => '<undef>',     # default value for new vars
+	    ARGCOUNT => 1,             # vars expect an argument
+	    ACTION   => \&my_set_var,  # callback when vars get set
 	}
     });
 
 Any attributes specified explicitly when a variable is defined will
 override any GLOBAL values.
 
-L<DEFINING VARIABLES> below describes these options in detail.
+See L<DEFINING VARIABLES> below which describes these options in detail.
 
 =back
 
@@ -996,8 +1122,8 @@ The DEFAULT value is used to initialise the variable.
 
 The ALIAS option allows a number of alternative names to be specified for 
 this variable.  A single alias should be specified as a string.  Multiple 
-aliases can be specified as a reference to an array or as a string of names
-separated by '|'.  e.g.:
+aliases can be specified as a reference to an array of alternatives or as 
+a string of names separated by vertical bars, '|'.  e.g.:
 
     $state->define("name", {
 	    ALIAS  => 'person',
@@ -1013,23 +1139,65 @@ or
 
     $state->user('abw');     # equivalent to $state->name('abw');
 
+=item ARGCOUNT
+
+The ARGCOUNT option specifies the number of arguments that should be 
+supplied for this variable.  By default, no additional arguments are 
+expected for variables (ARGCOUNT_NONE).
+
+The ARGCOUNT_* constants can be imported from the AppConfig::Const module:
+
+    use AppConfig ':argcount';
+
+    $state->define('foo', { ARGCOUNT => ARGCOUNT_ONE });
+
+or can be accessed directly from the AppConfig package:
+
+    use AppConfig;
+
+    $state->define('foo', { ARGCOUNT => AppConfig::ARGCOUNT_ONE });
+
+The following values for ARGCOUNT may be specified.  
+
+=over 4
+
+=item ARGCOUNT_NONE (0)
+
+Indicates that no additional arguments are expected.  If the variable is
+identified in a confirguration file or in the command line arguments, it
+is set to a value of 1 regardless of whatever arguments follow it.
+
+=item ARGCOUNT_ONE (1)
+
+Indicates that the variable expects a single argument to be provided.
+The variable value will be overwritten with a new value each time it 
+is encountered.
+
+=item ARGCOUNT_LIST (2)
+
+Indicates that the variable expects multiple arguments.  The variable 
+value will be appended to the list of previous values each time it is
+encountered.  
+
+=item ARGCOUNT_HASH (3)
+
+Indicates that the variable expects multiple arguments and that each
+argument is of the form "key=value".  The argument will be split into 
+a key/value pair and inserted into the hash of values each time it 
+is encountered.
+
+=back
+
 =item ARGS
 
-The ARGS option specifies an argument pattern for command line
-processing.  Currently a value of 1 will indicate that the variable
-expects a value parameter following it in the argument list.  An error
-will be raised if this is not the case.  In a future version of
-AppConfig::State this value will also be used to specify more complex
-argument options in the style of Getopt::Long (to which it will
-delegate).
+The ARGS option can also be used to specify advanced command line options 
+for use with AppConfig::Getopt, which itself delegates to Getopt::Long.  
+See those two modules for more information on the format and meaning of
+these options.
 
-The configuration file processing module, AppConfig::File also examines
-this variable and raises a warning if an argument was expected and 
-no value was provided.  Variables that don't have any ARGS will be set
-to the value 1 if no other value is provided.
-
-ARGCOUNT is an alias for ARGS to provide backward compatibility with
-the App::Config module, the predecessor to AppConfig::*.
+    $state->define("name", {
+	    ARGS => "=i@",
+	});
 
 =item EXPAND 
 
@@ -1039,18 +1207,18 @@ By default, EXPAND is turned off (EXPAND_NONE) and no expansion is made.
 
 The EXPAND_* constants can be imported from the AppConfig::Const module:
 
-    use AppConfig::State ':expand';
+    use AppConfig::Const ':expand';
 
     $state->define('foo', { EXPAND => EXPAND_VAR });
 
 or can be accessed directly from the AppConfig::Const package:
 
-    use AppConfig::State;
+    use AppConfig::Const;
 
     $state->define('foo', { EXPAND => AppConfig::Const::EXPAND_VAR });
 
 The following values for EXPAND may be specified.  Multiple values should
-be combined with vertical bars , '|', e.g. c<EXPAND_UID | EXPAND_VAR).
+be combined with vertical bars , '|', e.g. C<EXPAND_UID | EXPAND_VAR>).
 
 =over 4
 
@@ -1060,7 +1228,7 @@ Indicates that no variable expansion should be attempted.
 
 =item EXPAND_VAR
 
-Inidicates that variables embedded as $var or $(var) should be expanded
+Indicates that variables embedded as $var or $(var) should be expanded
 to the values of the relevant AppConfig::State variables.
 
 =item EXPAND_UID 
@@ -1075,7 +1243,7 @@ value of the relevant environment variable.
 
 =item EXPAND_ALL
 
-Equivalent to C<EXPAND_VARS | EXPAND_UIDS | EXPAND_ENVS).
+Equivalent to C<EXPAND_VARS | EXPAND_UIDS | EXPAND_ENVS>).
 
 =item EXPAND_WARN
 
@@ -1140,12 +1308,30 @@ Example:
 
 Be aware that calling C<$state-E<gt>set()> to update the same variable
 from within the ACTION function will cause a recursive loop as the
-ACTION function is repeatedly called.  This is probably a bug, certainly
-a limitation.
+ACTION function is repeatedly called.  
 
 =item 
 
 =back
+
+=head2 DEFINING VARIABLES USING THE COMPACT FORMAT
+
+Variables may be defined in a compact format which allows any ALIAS and
+ARGS values to be specified as part of the variable name.  This is designed
+to mimic the behaviour of Johan Vromans' Getopt::Long module.
+
+Aliases for a variable should be specified after the variable name, 
+separated by vertical bars, '|'.  Any ARGS parameter should be appended 
+after the variable name(s) and/or aliases.
+
+The following examples are equivalent:
+
+    $state->define("foo", { 
+	    ALIAS => [ 'bar', 'baz' ],
+	    ARGS  => '=i',
+	});
+
+    $state->define("foo|bar|baz=i");
 
 =head2 READING AND MODIFYING VARIABLE VALUES
 
@@ -1173,10 +1359,9 @@ is equivalent to
 
 Without parameters, the current value of the variable is returned.  If
 a parameter is specified, the variable is set to that value and the 
-original value (before modification) is returned.
+result of the set() operation is returned.
 
-    $state->age(28);  
-    $state->age(29);        # sets 'age' to 29, returns 28
+    $state->age(29);        # sets 'age' to 29, returns 1 (ok)
 
 =head2 INTERNAL METHODS
 
@@ -1216,10 +1401,10 @@ variable:
 
     print "$varname EXPAND: ", $state->_expand($varname), "\n";
 
-The _args() method returns the value of the ARGS (also known as ARGCOUNT)
-attribute for a variable:
+The _argcount() method returns the value of the ARGCOUNT attribute for a 
+variable:
 
-    print "$varname ARGS: ", $state->_args($varname), "\n";
+    print "$varname ARGCOUNT: ", $state->_argcount($varname), "\n";
 
 The _validate() method can be used to determine if a new value for a variable
 meets any validation criteria specified for it.  The variable name and 
@@ -1236,7 +1421,7 @@ PEDANTIC option.
 The _debug() method can be used to turn debugging on or off (pass 1 or 0
 as a parameter).  It can also be used to check the debug state,
 returning the current internal value of $AppConfig::State::DEBUG.  If a
-new debug value is provided, the dbug state is updated and the previous
+new debug value is provided, the debug state is updated and the previous
 state is returned.
 
     $state->_debug(1);               # debug on, returns previous value
@@ -1255,7 +1440,7 @@ Web Technology Group, Canon Research Centre Europe Ltd.
 
 =head1 REVISION
 
-$Revision: 0.2 $
+$Revision: 1.50 $
 
 =head1 COPYRIGHT
 
@@ -1267,6 +1452,6 @@ under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
-AppConfig, AppConfig::File, AppConfig::Args, AppConfig::Const
+AppConfig, AppConfig::File, AppConfig::Args, AppConfig::Getopt
 
 =cut

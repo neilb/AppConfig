@@ -1,8 +1,8 @@
 #========================================================================
 #
-# t/args.t 
+# t/getopt.t 
 #
-# AppConfig::Args test file.
+# AppConfig::Getopt test file.
 #
 # Written by Andy Wardley <abw@cre.canon.co.uk>
 #
@@ -12,12 +12,6 @@
 # This is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-#------------------------------------------------------------------------
-#
-# TODO
-#
-# * test PEDANTIC option
-#
 #========================================================================
 
 use strict;
@@ -26,7 +20,7 @@ $^W = 1;
 
 BEGIN { 
     $| = 1; 
-    print "1..11\n"; 
+    print "1..7\n"; 
 }
 
 END {
@@ -41,13 +35,12 @@ sub ok {
 }
 
 use AppConfig qw(:argcount);
-use AppConfig::Args;
 $loaded = 1;
 ok(1);
 
 
 #------------------------------------------------------------------------
-# create new AppConfig::State and AppConfig::Args objects
+# create new AppConfig
 #
 
 my $default = "<default>";
@@ -56,7 +49,12 @@ my $user    = "Fred Smith";
 my $age     = 42;
 my $notarg  = "This is not an arg";
 
-my $state = AppConfig::State->new({
+my $config = AppConfig->new({
+#	DEBUG    => 1,
+	ERROR    => sub { 
+		my $format = "ERR: " . shift() . "\n"; 
+		printf STDERR $format, @_;
+	    },
 	GLOBAL => { 
 	    DEFAULT  => $default,
 	    ARGCOUNT => ARGCOUNT_ONE,
@@ -69,35 +67,29 @@ my $state = AppConfig::State->new({
     },
     'user' => {
 	ALIAS    => 'u|name|uid',
+	ARGS     => '=s',
 	DEFAULT  => $anon,
     },
     'age' => {
 	ALIAS    => 'a',
+	ARGS     => '=s',
 	VALIDATE => '\d+',
     });
 
-my $cfgargs = AppConfig::Args->new($state);
+#2: test the AppConfig got instantiated correctly
+ok( defined $config );
 
-#2 - #3: test the state and cfgargs got instantiated correctly
-ok( defined $state   );
-ok( defined $cfgargs );
+my @args = ('-v', '-u', $user, '--age', $age, $notarg);
 
-my @args = ('-v', '-u', $user, '-age', $age, $notarg);
+#3: process the args
+ok( $config->getopt(qw(default auto_abbrev), \@args) );
 
-#4: process the args
-ok( $cfgargs->parse(\@args) );
+#4 - #6: check variables got updated
+ok( $config->verbose() == 1     );
+ok( $config->user()    eq $user );
+ok( $config->age()     eq $age  );
 
-#5 - #7: check variables got updated
-ok( $state->verbose() == 1     );
-ok( $state->user()    eq $user );
-ok( $state->age()     == $age  );
+#7: next arg should be $notarg
+ok( $args[0] = $notarg );
 
-#8: next arg should be $notarg
-ok( $args[0] eq $notarg );
-
-#9 - #11: check args defaults to using @ARGV
-@ARGV = ('--age', $age * 2, $notarg);
-ok( $cfgargs->parse() );
-ok( $state->age() == ($age * 2) );
-ok( $ARGV[0] eq $notarg );
 

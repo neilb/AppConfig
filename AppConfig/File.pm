@@ -12,7 +12,15 @@
 #
 #----------------------------------------------------------------------------
 #
-# $Id: File.pm,v 0.1 1998/10/08 19:52:28 abw Exp abw $
+# TODO
+#
+# * Lift/share section from AppConfig about config file format.
+#
+# * Graft [Block] section back into AppConfig
+#
+#----------------------------------------------------------------------------
+#
+# $Id: File.pm,v 1.50 1998/10/21 09:23:08 abw Exp abw $
 #
 #============================================================================
 
@@ -26,7 +34,7 @@ use AppConfig::State;
 use strict;
 use vars qw( $VERSION );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 0.1 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.50 $ =~ /(\d+)\.(\d+)/);
 
 
 
@@ -41,7 +49,7 @@ $VERSION = sprintf("%d.%02d", q$Revision: 0.1 $ =~ /(\d+)\.(\d+)/);
 # Module constructor.  The first, mandatory parameter should be a 
 # reference to an AppConfig::State object to which all actions should 
 # be applied.  The remaining parameters are assumed to be file names or
-# file handles for reading and are passed to read().
+# file handles for reading and are passed to parse().
 #
 # Returns a reference to a newly created AppConfig::File object.
 #
@@ -60,8 +68,8 @@ sub new {
 
     bless $self, $class;
 
-    # call read(@_) to parse any files specified as further params
-    $self->read(@_)
+    # call parse(@_) to parse any files specified as further params
+    $self->parse(@_)
 	if @_;
 
     return $self;
@@ -71,7 +79,7 @@ sub new {
 
 #========================================================================
 #
-# read($file, [file, ...])
+# parse($file, [file, ...])
 #
 # Reads and parses a config file, updating the contents of the 
 # AppConfig::State referenced by $self->{ STATE } according to the 
@@ -94,7 +102,7 @@ sub new {
 #
 #========================================================================
 
-sub read {
+sub parse {
     my $self     = shift;
     my $warnings = 0;
     my $prefix;           # [block] defines $prefix
@@ -189,35 +197,59 @@ sub read {
 	    if (/^([^\s=]+)(?:(?:(?:\s*=\s*)|\s+)(.*))?/) {
 		my ($variable, $value) = ($1, $2);
 
+		# strip any quoting from the variable value
+		$value =~ s/^(['"])(.*)\1$/$2/ if defined $value;
+
 		# $variable gets any $prefix 
 		$variable = $prefix . '_' . $variable
 		    if length $prefix;
 
-		my $nargs = $state->_args($variable);
+		# call set() to give AppConfig::State a chance to auto-
+		# create the variable if not already defined
+		$state->set($variable, 1) 
+		    unless $state->_exists($variable);
 
-		unless (defined $value && length $value) {
-		    # determine if any extra arguments were expected
-		    if ($nargs) {
-			$state->_error("$variable expects an argument");
-			$warnings++;
-			last ARG if $pedantic;
-			next;
+		my $nargs = $state->_argcount($variable);
+
+		# determine if any extra arguments were expected
+		if ($nargs) {
+		    if (defined $value && length $value) {
+			# expand any embedded variables, ~uids or
+			# environment variables, testing the return value
+			# for errors;  we pass in any variable-specific
+			# EXPAND value 
+			unless ($self->_expand(\$value, 
+				$state->_expand($variable), $prefix)) {
+			    print STDERR "expansion of [$value] failed\n" 
+				if $debug;
+			    $warnings++;
+			    last FILE if $pedantic;
+			}
 		    }
 		    else {
-			# default value to 1
-			$value = 1;
+			$state->_error("$variable expects an argument");
+			$warnings++;
+			last FILE if $pedantic;
+			next;
 		    }
 		}
-	    
-		# expand any embedded variables, ~uids or environment 
-		# variables, testing the return value for errors;  we pass
-		# in any variable-specific EXPAND value 
-		unless ($self->_expand(\$value, $state->_expand($variable))) {
-		    print STDERR "expansion of [$value] failed" if $debug;
-		    $warnings++;
-		    last FILE if $pedantic;
+		else {
+		    # default value to 1 unless it is explicitly defined
+		    # as '0' or "off"
+		    if (defined $value) {
+			# "off" => 0
+    			$value = 0 if $value =~ /off/i;
+			# any value => 1
+			$value = 1 if $value;
+		    }
+		    else {
+			# assume 1 unless explicitly defined off/0
+    			$value = 1;
+		    }
+		    print STDERR "$variable => $value (no expansion)\n"
+			if $debug;
 		}
-
+	   
 		# set the variable, noting any failure from set()
 		unless ($state->set($variable, $value)) {
 		    $warnings++;
@@ -246,12 +278,20 @@ sub read {
 
 #========================================================================
 #
-# _expand(\$value, $expand)
+# _expand(\$value, $expand, $prefix)
 #
 # The variable value string, referenced by $value, is examined and any 
 # embedded variables, environment variables or tilde globs (home 
 # directories) are replaced with their respective values, depending on 
-# the value of the second parameter, $expand.
+# the value of the second parameter, $expand.  The third paramter may
+# specify the name of the current [block] in which the parser is 
+# parsing.  This prefix is prepended to any embedded variable name that
+# can't otherwise be resolved.  This allows the following to work:
+#
+#   [define]
+#   home = /home/abw
+#   html = $define_home/public_html
+#   html = $home/public_html     # same as above, 'define' is prefix
 #
 # Modifications are made directly into the variable referenced by $value.
 # The method returns 1 on success or 0 if any warnings (undefined 
@@ -260,10 +300,13 @@ sub read {
 #========================================================================
 
 sub _expand {
-    my ($self, $value, $expand) = @_;
+    my ($self, $value, $expand, $prefix) = @_;
     my $warnings = 0;
     my ($sys, $var, $val);
 
+
+    # ensure prefix contains something (nothing!) valid for length()
+    $prefix = "" unless defined $prefix;
 
     # take a local copy of the state to avoid much hash dereferencing
     my ($state, $debug, $pedantic) = @$self{ qw( STATE DEBUG PEDANTIC ) };
@@ -297,6 +340,13 @@ sub _expand {
 
 		# expand the variable if defined
 		if ($state->_exists($var)) {
+		    $val = $state->get($var);
+		}
+		elsif (length $prefix 
+			&& $state->_exists($prefix . '_' . $var)) {
+		    print STDERR "(\$$var => \$${prefix}_$var) "
+			if $debug;
+		    $var = $prefix . '_' . $var;
 		    $val = $state->get($var);
 		}
 		else {
@@ -450,7 +500,7 @@ AppConfig::File - Perl5 module for reading configuration files.
     my $state   = AppConfig::State->new(\%cfg1);
     my $cfgfile = AppConfig::File->new($state, $file);
 
-    $cfgfile->read($file);            # read config file
+    $cfgfile->parse($file);            # read config file
 
 =head1 OVERVIEW
 
@@ -485,14 +535,14 @@ This will create and return a reference to a new AppConfig::File object.
 
 =head2 READING CONFIGURATION FILES 
 
-The C<read()> method is used to read a configuration file and have the 
+The C<parse()> method is used to read a configuration file and have the 
 contents update the STATE accordingly.
 
-    $cfgfile->read($file);
+    $cfgfile->parse($file);
 
 Multiple files maye be specified and will be read in turn.
 
-    $cfgfile->read($file1, $file2, $file3);
+    $cfgfile->parse($file1, $file2, $file3);
 
 The method will return an undef value if it encounters any errors opening
 the files.  It will return immediately without processing any further files.
@@ -511,16 +561,90 @@ See L<AppConfig::State> for more information on variable expansion.
 
 =head2 CONFIGURATION FILE FORMAT
 
-# TODO: describe
+The file may contain blank lines and comments (prefixed by '#') which 
+are ignored.  Continutation lines may be marked by ending the line with 
+a '\'.
 
-=head2 BLOCK DEFINITIONS
+    # this is a comment
+    callsign = alpha bravo camel delta echo foxtrot golf hipowls \
+               india juliet kilo llama mike november oscar papa  \
+	       quebec romeo sierra tango umbrella victor whiskey \
+	       x-ray yankee zebra
 
-The AppConfig::File module supports the use of blocks within the
-configuration files it reads.  A block header, consisting of the block name
-in square brackets, introduces a configuration block.  The block name
-and an underscore are then prefixed to the names of all variables
-subsequently referenced in that block.  The block continues until the 
-next block definition or to the end of the current file.
+Variables that are simple flags and do not expect an argument (ARGCOUNT = 
+ARGCOUNT_NONE) can be specified without any value.  They will be set with 
+the value 1, with any value explicitly specified (except "0" and "off")
+being ignored.  The variable may also be specified with a "no" prefix to 
+implicitly set the variable to 0.
+
+    verbose                              # on  (1)
+    verbose = 1                          # on  (1)
+    verbose = 0                          # off (0)
+    verbose off                          # off (0)
+    verbose on                           # on  (1)
+    verbose mumble                       # on  (1)
+    noverbose                            # off (0)
+
+Variables that expect an argument (ARGCOUNT = ARGCOUNT_ONE) will be set to 
+whatever follows the variable name, up to the end of the current line.  An
+equals sign may be inserted between the variable and value for clarity.
+
+    room = /home/kitchen     
+    room   /home/bedroom
+
+Each subsequent re-definition of the variable value overwrites the previous
+value.
+
+    print $config->room();               # prints "/home/bedroom"
+
+Variables may be defined to accept multiple values (ARGCOUNT = ARGCOUNT_LIST).
+Each subsequent definition of the variable adds the value to the list of
+previously set values for the variable.  
+
+    drink = coffee
+    drink = tea
+
+A reference to a list of values is returned when the variable is requested.
+
+    my $beverages = $config->drinks();
+    print join(", ", @$beverages);      # prints "coffee, tea"
+
+Variables may also be defined as hash lists (ARGCOUNT = ARGCOUNT_HASH).
+Each subsequent definition creates a new key and value in the hash array.
+
+    alias l="ls -CF"
+    alias h="history"
+
+A reference to the hash is returned when the variable is requested.
+
+    my $aliases = $config->alias();
+    foreach my $k (keys %$aliases) {
+	print "$k => $aliases->{ $k }\n";
+    }
+
+Variable values may contain references to other AppConfig variables, 
+environment variables and/or users' home directories.  These will be 
+expanded depending on the EXPAND value for each variable or the GLOBAL
+EXPAND value.
+
+Three different expansion types may be applied:
+
+    bin = ~/bin          # expand '~' to home dir if EXPAND_UID
+    tmp = ~abw/tmp       # as above, but home dir for user 'abw'
+
+    perl = $bin/perl     # expand value of 'bin' variable if EXPAND_VAR
+    ripl = $(bin)/ripl   # as above with explicit parens
+
+    home = ${HOME}       # expand HOME environment var if EXPAND_ENV
+
+See L<AppConfig::State> for more information on expanding variable values.
+
+The configuration files may have variables arranged in blocks.  A block 
+header, consisting of the block name in square brackets, introduces a 
+configuration block.  The block name and an underscore are then prefixed 
+to the names of all variables subsequently referenced in that block.  The 
+block continues until the next block definition or to the end of the current 
+file.
 
     [block1]
     foo = 10             # block1_foo = 10
@@ -536,7 +660,7 @@ Web Technology Group, Canon Research Centre Europe Ltd.
 
 =head1 REVISION
 
-$Revision: 0.1 $
+$Revision: 1.50 $
 
 =head1 COPYRIGHT
 
@@ -548,6 +672,6 @@ under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
-AppConfig, AppConfig::State, AppConfig:Args, :AppConfig::Const
+AppConfig, AppConfig::State
 
 =cut

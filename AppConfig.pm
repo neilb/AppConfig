@@ -2,7 +2,8 @@
 #
 # AppConfig.pm
 #
-# Perl5 module for...
+# Perl5 module for reading and parsing configuration files and command line 
+# arguments.
 #
 # Written by Andy Wardley <abw@cre.canon.co.uk>
 #
@@ -11,7 +12,7 @@
 #
 #----------------------------------------------------------------------------
 #
-# $Id: AppConfig.pm,v 0.1 1998/10/08 20:34:52 abw Exp abw $
+# $Id: AppConfig.pm,v 1.50 1998/10/21 09:28:15 abw Exp abw $
 #
 #============================================================================
 
@@ -19,12 +20,44 @@ package AppConfig;
 
 require 5.004;
 
-use AppConfig::State;
-
 use strict;
-use vars qw( $VERSION $AUTOLOAD );
+use vars qw( $VERSION $AUTOLOAD @ISA @EXPORT_OK %EXPORT_TAGS );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 0.1 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.50 $ =~ /(\d+)\.(\d+)/);
+@ISA     = qw(Exporter);
+
+
+
+#========================================================================
+#                         ----- EXPORTER -----
+#========================================================================
+
+# variable expansion constants
+use constant EXPAND_NONE    => 0;
+use constant EXPAND_VAR     => 1;
+use constant EXPAND_UID     => 2;
+use constant EXPAND_ENV     => 4;
+use constant EXPAND_ALL     => EXPAND_VAR | EXPAND_UID | EXPAND_ENV;
+use constant EXPAND_WARN    => 8;
+
+# argument count types
+use constant ARGCOUNT_NONE  => 0;
+use constant ARGCOUNT_ONE   => 1;
+use constant ARGCOUNT_LIST  => 2;
+use constant ARGCOUNT_HASH  => 3;
+
+
+# Exporter tagsets
+my @EXPAND   = qw(EXPAND_NONE EXPAND_VAR EXPAND_UID EXPAND_ENV 
+                  EXPAND_ALL EXPAND_WARN);
+my @ARGCOUNT = qw(ARGCOUNT_NONE ARGCOUNT_ONE ARGCOUNT_LIST ARGCOUNT_HASH);
+
+@ISA         = qw(Exporter);
+@EXPORT_OK   = (@EXPAND, @ARGCOUNT);
+%EXPORT_TAGS = (
+    expand   => [ @EXPAND   ],
+    argcount => [ @ARGCOUNT ],
+);
 
 
 
@@ -37,7 +70,7 @@ $VERSION = sprintf("%d.%02d", q$Revision: 0.1 $ =~ /(\d+)\.(\d+)/);
 # new(\%config, @vars)
 #
 # Module constructor.  All parameters passed are forwarded onto the 
-# App::State constructor.
+# AppConfig::State constructor.
 #
 # Returns a reference to a newly created AppConfig object.
 #
@@ -45,6 +78,9 @@ $VERSION = sprintf("%d.%02d", q$Revision: 0.1 $ =~ /(\d+)\.(\d+)/);
 
 sub new {
     my $class = shift;
+
+
+    require AppConfig::State;
 
     my $self = {
 	STATE => AppConfig::State->new(@_)
@@ -70,7 +106,7 @@ sub new {
 # an open file.  These are then passed to the AppConfig::File object for
 # processsing.
 #
-# Propagates the return value from AppConfig::File->read().
+# Propagates the return value from AppConfig::File->parse().
 # 
 #========================================================================
 
@@ -83,10 +119,10 @@ sub file {
     require AppConfig::File;
 
     # create an AppConfig::File object if one isn't defined 
-    $self->{ FILE } ||= ($file = AppConfig::File->new($state));
+    $file = $self->{ FILE } ||= AppConfig::File->new($state);
 
     # call on the AppConfig::File object to process files.
-    $file->read(@_);
+    $file->parse(@_);
 }
 
 
@@ -115,10 +151,43 @@ sub args {
     require AppConfig::Args;
 
     # create an AppConfig::Args object if one isn't defined
-    $self->{ ARGS } ||= ($args = AppConfig::Args->new($state));
+    $args = $self->{ ARGS } ||= AppConfig::Args->new($state);
 
     # call on the AppConfig::Args object to process arguments.
-    $args->args(shift);
+    $args->parse(shift);
+}
+
+
+
+#========================================================================
+#
+# getopt(@config, \@args)
+#
+# The getopt() method is called to parse command line arguments.  The
+# AppConfig::Getopt module is require()'d and an AppConfig::Getopt object
+# is created to parse the arguments.
+#
+# The parameter list may start with a number of option strings which gets 
+# passed to the Getopt::Long constructor.  The next parameter (the first
+# list ref) should be a reference to a list of arguments for processing.
+#
+# Propagates the return value from $self->_getopt().
+# 
+#========================================================================
+
+sub getopt {
+    my $self  = shift;
+    my $state = $self->{ STATE };
+    my $getopt;
+
+
+    require AppConfig::Getopt;
+
+    # create an AppConfig::Getopt object if one isn't defined
+    $getopt = $self->{ GETOPT } ||= AppConfig::Getopt->new($state);
+
+    # call on the AppConfig::Getopt object to process arguments.
+    $getopt->parse(@_);
 }
 
 
@@ -157,18 +226,21 @@ __END__
 
 =head1 NAME
 
-AppConfig - Perl5 module for managing application configuration 
-information, reading configuration files and parsing command line.
+AppConfig - Perl5 module for reading configuration files and parsing command line arguments.
 
 =head1 SYNOPSIS
 
     use AppConfig;
 
-    # create a new AppConfig 
-    my $config = AppConfig->new(\%cfg, @vardefs);
+    # create a new AppConfig object
+    my $config = AppConfig->new(\%cfg);
 
     # define a new variable
-    $config->define($varname, \%varopts);
+    $config->define($varname => \%varopts);
+
+    # create/define combined
+    my $config = AppConfig->new(\%cfg, 
+	    $varname => \%varopts, $varname => \%varopts, ...);
 
     # set/get the value
     $config->set($varname, $value);
@@ -184,21 +256,80 @@ information, reading configuration files and parsing command line.
     # parse command line options
     $config->args(\@ARGV);
 
+    # advanced command line options with Getopt::Long
+    $config->getopt(\@ARGV);
+
 =head1 OVERVIEW
 
-AppConfig is a Perl5 module to handle global configuration variables
-for perl programs.  
-
-It maintains the state of any number of variables, handling default 
-values, aliasing, validation, update callbacks and option arguments 
-for use by AppConfig::* modules.
-
-The module handles the parsing of configuration files and command line
+AppConfig is a Perl5 module for managing application configuration 
+information.  It maintains the state of any number of variables and 
+provides methods for parsing configuration files and command line 
 arguments.
+
+Variables values may be set via configuration files.  Variables may be 
+flags (On/Off), take a single value, or take multiple values stored as a
+a list or hash.  The number of arguments a variable expects is determined
+by its configuration when defined.
+
+    # flags
+    verbose 
+    nohelp
+    debug = On
+
+    # single value
+    home  = /home/abw/
+
+    # multiple list value
+    file = /tmp/file1
+    file = /tmp/file2
+
+    # multiple hash value
+    book  camel = Programming Perl
+    book  llama = Learning Perl
+
+Variable, environment variable and tilde (home directory) expansions
+can be applied (selectively, if necessary) to the values read from 
+configuration files:
+
+    home = ~                    # home directory
+    nntp = ${NNTPSERVER}        # environment variable
+    html = $home/html           # internal variables
+    img  = $html/images
+
+Configuration files may be arranged in blocks as per the style of Win32 
+"INI" files.
+
+    [file]
+    site = kfs
+    src  = ~/websrc/docs/$site
+    lib  = ~/websrc/lib
+    dest = ~/public_html/$site
+
+    [page]
+    header = $lib/header
+    footer = $lib/footer
+
+Variables may also be set by parsing command line arguments.
+
+    myapp -verbose -site kfs -file f1 -file f2
+
+AppConfig provides a simple method (args()) for parsing command line 
+arguments.  A second method (getopt()) allows more complex argument 
+processing by delegation to Johan Vroman's Getopt::Long module.
 
 =head1 PREREQUISITES
 
 AppConfig requires Perl 5.004 or later.  
+
+The AppConfig::Getopt module uses Getopt::Long for advanced command-line
+option processing and requires version 2.93 or later.  There is also a
+simple internal module (AppConfig::Args) for command line parsing that
+does not have the flexibility of AppConfig::Getopt but is smaller and
+incurs less overhead.  The Getopt::Long module is not required when this is
+used.
+
+All AppConfig::* and other modules (e.g. Getopt::Long) are dynamically 
+loaded by the AppConfig module as and when required.
 
 =head1 OBTAINING AND INSTALLING THE AppConfig MODULE BUNDLE
 
@@ -207,7 +338,7 @@ manual page explains:
 
     CPAN stands for the Comprehensive Perl Archive Network.
     This is a globally replicated collection of all known Perl
-    materials, including hundreds of unbunded modules.  
+    materials, including hundreds of unbundled modules.  
 
     [...]
 
@@ -228,8 +359,8 @@ AppConfig is distributed as a single gzipped tar archive file:
     AppConfig-<version>.tar.gz
 
 Note that "<version>" represents the current AppConfig Revision number, 
-of the form "2.00".  See L<REVISION> below to determine the current 
-version number for AppConfig.
+of the form "2.00".  See the REVISION section below to determine the 
+current version number for AppConfig.
 
 Unpack the archive to create a AppConfig installation directory:
 
@@ -244,16 +375,16 @@ Unpack the archive to create a AppConfig installation directory:
     make test
     make install
 
-The 't' sub-directory contains a number of small sample files which are 
-processed by the test script (called by 'make test').  See the README file 
-in that directory for more information.  
+The 't' sub-directory contains a number of test scripts that are run when 
+a 'make test' is run.
 
 The 'make install' will install the module on your system.  You may need 
-root access to perform this task.  If you install the module in a local 
-directory (for example, by executing "perl Makefile.PL LIB=~/lib" in the 
-above - see C<perldoc MakeMaker> for full details), you will need to ensure 
-that the PERL5LIB environment variable is set to include the location, or 
-add a line to your scripts explicitly naming the library location:
+administrator privileges to perform this task.  If you install the module 
+in a local directory (for example, by executing "perl Makefile.PL
+LIB=~/lib" in the above - see C<perldoc MakeMaker> for full details), you
+will need to ensure that the PERL5LIB environment variable is set to
+include the location, or add a line to your scripts explicitly naming the
+library location:
 
     use lib '/local/path/to/lib';
 
@@ -269,6 +400,14 @@ appear in your Perl script:
 
      use AppConfig;
 
+To import constants defined by the AppConfig module, specify the name of
+one or more of the constant or tag sets as parameters to C<use>:
+
+    use AppConfig qw(:expand :argcount);
+
+See L<CONSTANT DEFINITIONS> below for more information on the constant
+tagsets defined by AppConfig.
+
 AppConfig is implemented using object-oriented methods.  A 
 new AppConfig object is created and initialised using the 
 new() method.  This returns a reference to a new AppConfig 
@@ -279,11 +418,58 @@ object.
 This will create and return a reference to a new AppConfig object.
 
 In doing so, the AppConfig object also creates an internal reference
-to an App::State object in which to store variable state.  All 
+to an AppConfig::State object in which to store variable state.  All 
 arguments passed into the AppConfig constructor are passed directly
-to the App::State constructor.  
+to the AppConfig::State constructor.  
 
-See L<App::State> for full details of the configuration options available.
+The first (optional) parameter may be a reference to a hash array
+containing configuration information.  
+
+    my $config = AppConfig->new({
+	    CASE   => 1,
+	    ERROR  => \&my_error,
+	    GLOBAL => { 
+		    DEFAULT  => "<unset>", 
+		    ARGCOUNT => ARGCOUNT_ONE,
+		},
+	});
+
+See L<AppConfig::State> for full details of the configuration options
+available.  These are, in brief:
+
+=over 4
+
+=item CASE
+
+Used to set case sensitivity for variable names (default: off).
+
+=item CREATE
+
+Used to indicate that undefined variables should be created automatically
+(default: off).
+
+=item GLOBAL 
+
+Reference to a hash array of global values used by default when defining 
+variables.  Valid global values are DEFAULT, ARGCOUNT, EXPAND, VALIDATE
+and ACTION.
+
+=item PEDANTIC
+
+Used to indicate that command line and configuration file parsing routines
+should return immediately on encountering an error.
+
+=item ERROR
+
+Used to provide a error handling routine.  Arguments as per printf().
+
+=back
+
+Subsequent parameters may be variable definitions.  These are passed 
+to the define() method, described below in L<DEFINING VARIABLES>.
+
+    my $config = AppConfig->new("foo", "bar", "baz");
+    my $config = AppConfig->new({ CASE => 1 }, qw(foo bar baz));
 
 Note that any unresolved method calls to AppConfig are automatically 
 delegated to the AppConfig::State object.  In practice, it means that
@@ -299,15 +485,19 @@ AppConfig::State object:
     $config->define('baz');
     $config->baz(300);
     
-
 =head2 DEFINING VARIABLES
 
-The C<define()> function is used to pre-declare a variable and specify 
-its configuration.
+The C<define()> method (delegated to AppConfig::State) is used to 
+pre-declare a variable and specify its configuration.
 
     $config->define("foo");
 
-In the simple example above, a new variable called "foo" is defined.  A 
+Variables may also be defined directly from the AppConfig new()
+constructor.
+
+    my $config = AppConfig->new("foo");
+
+In both simple examples above, a new variable called "foo" is defined.  A 
 reference to a hash array may also be passed to specify configuration 
 information for the variable:
 
@@ -316,12 +506,89 @@ information for the variable:
 	    ALIAS     => 'metavar1',
 	});
 
-See L<AppConfig::State) for further details of the configuration options
-available when defining variables.
+Configuration items specified in the GLOBAL option to the module 
+constructor are applied by default when variables are created.  e.g.
+
+    my $config = AppConfig->new({ 
+	    GLOBAL => {
+		    DEFAULT  => "<undef>",
+		    ARGCOUNT => ARGCOUNT_ONE,
+		}
+	});
+    
+    $config->define("foo");
+    $config->define("bar", { ARGCOUNT => ARGCOUNT_NONE } );
+
+is eqivalent to:
+
+    my $config = AppConfig->new();
+    
+    $config->define("foo", {
+		DEFAULT  => "<undef>",
+		ARGCOUNT => ARGCOUNT_ONE,
+	    });
+
+    $config->define("bar", 
+		DEFAULT  => "<undef>",
+		ARGCOUNT => ARGCOUNT_NONE,
+	    });
+
+Multiple variables may be defined in the same call to define().
+Configuration hashes for variables can be omitted.
+
+    $config->define("foo", "bar" => { ALIAS = "boozer" }, "baz");
+
+See L<AppConfig::State>) for full details of the configuration options
+available when defining variables.  These are, in brief:
+
+=over 
+
+=item DEFAULT
+
+The default value for the variable (default: undef).
+
+=item ALIAS
+
+One or more (list reference or "list|like|this") alternative names for the
+variable.
+
+=item ARGCOUNT
+
+Specifies the number and type of arguments that the variable expects.
+Constants in C<:expand> tag set define ARGCOUNT_NONE - simple on/off flag
+(default), ARGCOUNT_ONE - single value, ARGCOUNT_LIST - multiple values
+accessed via list reference, ARGCOUNT_HASH - hash table, "key=value",
+accessed via hash reference.
+
+=item ARGS 
+
+Used to provide an argument specification string to pass to Getopt::Long 
+via AppConfig::Getopt.  E.g. "=i", ":s", "=s@".
+
+=item EXPAND
+
+Specifies which variable expansion policies should be used when parsing 
+configuration files.  Constants in C<:argcount> tag set define EXPAND_NONE
+- no expansion (default), EXPAND_VAR - expand C<$var> or C<$(var)> as 
+other AppConfig variables, EXPAND_UID - expand C<~uid> as user's home 
+directory, EXPAND_ENV - expand C<${var}> as environment variable,
+EXPAND_ALL - do all expansions.  May be logically or'd.
+
+=item VALIDATE
+
+Regex which the intended variable value should match or code reference 
+which returns 1 to indicate successful validaton (variable may now be set).
+
+=item ACTION
+
+Code reference to be called whenever variable value changes.
+
+=back
 
 =head2 READING AND MODIFYING VARIABLE VALUES
 
-AppConfig defines two methods to manipulate variable values: 
+AppConfig defines two methods (via AppConfig::State) to manipulate variable 
+values
 
     set($variable, $value);
     get($variable);
@@ -337,10 +604,30 @@ is equivalent to
 
 Without parameters, the current value of the variable is returned.  If
 a parameter is specified, the variable is set to that value and the 
-original value (before modification) is returned.
+result of the set() operation is returned.
 
-    $config->age(28);  
-    $config->age(29);        # sets 'age' to 29, returns 28
+    $config->age(29);        # sets 'age' to 29, returns 1 (ok)
+    print $config->age();    # prints "29"
+
+The varlist() method can be used to extract a number of variables into
+a hash array.  The first parameter should be a regular expression 
+used for matching against the variable names. 
+
+    my %vars = $config->varlist("^file");   # all "file*" variables
+
+A second parameter may be specified (any true value) to indicate that 
+the part of the variable name matching the regex should be removed 
+when copied to the target hash.
+
+    $config->file_name("/tmp/file");
+    $config->file_path("/foo:/bar:/baz");
+
+    my %vars = $config->varlist("^file_", 1);
+
+    # %vars:
+    #    name => /tmp/file
+    #    path => "/foo:/bar:/baz"
+
 
 =head2 READING CONFIGURATION FILES
 
@@ -351,25 +638,79 @@ to process the configuration file(s).  Variables stored in the internal
 AppConfig::State are automatically updated with values specified in the 
 configuration file.  
 
-    $config->file($file);
+    $config->file($filename);
 
 Multiple files may be passed to file() and should indicate the file name 
 or be a reference to an open file handle or glob.
 
-    $config->file($file, $filehandle, \*STDIN, ...);
+    $config->file($filename, $filehandle, \*STDIN, ...);
 
-The configuration file should contain lines of the form:
+The file may contain blank lines and comments (prefixed by '#') which 
+are ignored.  Continutation lines may be marked by ending the line with 
+a '\'.
 
-    variable = value
+    # this is a comment
+    callsign = alpha bravo camel delta echo foxtrot golf hipowls \
+               india juliet kilo llama mike november oscar papa  \
+	       quebec romeo sierra tango umbrella victor whiskey \
+	       x-ray yankee zebra
 
-The separating '=' is optional.
+Variables that are simple flags and do not expect an argument (ARGCOUNT = 
+ARGCOUNT_NONE) can be specified without any value.  They will be set with 
+the value 1, with any value explicitly specified (except "0" and "off")
+being ignored.  The variable may also be specified with a "no" prefix to 
+implicitly set the variable to 0.
 
-Variables that are simple flags and do not expect an argument (ARGS = 0)
-can be specified without any value.  They will be set with the value 1.
+    verbose                              # on  (1)
+    verbose = 1                          # on  (1)
+    verbose = 0                          # off (0)
+    verbose off                          # off (0)
+    verbose on                           # on  (1)
+    verbose mumble                       # on  (1)
+    noverbose                            # off (0)
+
+Variables that expect an argument (ARGCOUNT = ARGCOUNT_ONE) will be set to 
+whatever follows the variable name, up to the end of the current line.  An
+equals sign may be inserted between the variable and value for clarity.
+
+    room = /home/kitchen     
+    room   /home/bedroom
+
+Each subsequent re-definition of the variable value overwrites the previous
+value.
+
+    print $config->room();               # prints "/home/bedroom"
+
+Variables may be defined to accept multiple values (ARGCOUNT = ARGCOUNT_LIST).
+Each subsequent definition of the variable adds the value to the list of
+previously set values for the variable.  
+
+    drink = coffee
+    drink = tea
+
+A reference to a list of values is returned when the variable is requested.
+
+    my $beverages = $config->drinks();
+    print join(", ", @$beverages);      # prints "coffee, tea"
+
+Variables may also be defined as hash lists (ARGCOUNT = ARGCOUNT_HASH).
+Each subsequent definition creates a new key and value in the hash array.
+
+    alias l="ls -CF"
+    alias h="history"
+
+A reference to the hash is returned when the variable is requested.
+
+    my $aliases = $config->alias();
+    foreach my $k (keys %$aliases) {
+	print "$k => $aliases->{ $k }\n";
+    }
 
 Variable values may contain references to other AppConfig variables, 
 environment variables and/or users' home directories.  These will be 
-expanded depending on the EXPAND value set in the AppConfig::State.  
+expanded depending on the EXPAND value for each variable or the GLOBAL
+EXPAND value.
+
 Three different expansion types may be applied:
 
     bin = ~/bin          # expand '~' to home dir if EXPAND_UID
@@ -380,37 +721,154 @@ Three different expansion types may be applied:
 
     home = ${HOME}       # expand HOME environment var if EXPAND_ENV
 
-See L<AppConfig::File> for further details on reading configuration files
-and expanding variable values.
+See L<AppConfig::State> for more information on expanding variable values.
+
+The configuration files may have variables arranged in blocks.  A block 
+header, consisting of the block name in square brackets, introduces a 
+configuration block.  The block name and an underscore are then prefixed 
+to the names of all variables subsequently referenced in that block.  The 
+block continues until the next block definition or to the end of the current 
+file.
+
+    [block1]
+    foo = 10             # block1_foo = 10
+
+    [block2]
+    foo = 20             # block2_foo = 20
 
 =head2 PARSING COMMAND LINE OPTIONS
 
-The args() method is used to parse command line options.  It
+There are two methods for processing command line options.  The first, 
+args(), is a small and efficient implementation which offers basic 
+functionality.  The second, getopt(), offers a more powerful and complete
+facility by delegating the task to Johan Vroman's Getopt::Long module.  
+The trade-off between args() and getopt() is essentially one of speed/size
+against flexibility.  Use as appropriate.  Both implement on-demand loading 
+of modules and incur no overhead until (unless) used.  
+
+The args() method is used to parse simple command line options.  It
 automatically loads the AppConfig::Args module and creates an object 
 to process the command line arguments.  Variables stored in the internal
 AppConfig::State are automatically updated with values specified in the 
-arguments:
+arguments.  
 
-    $config->args(\@ARGV);
+The method should be passed a reference to a list of arguments to parse.
+The @ARGV array is used if args() is called without parameters.
 
-Variables should be prefixed by a '-' or '--'.
+    $config->args(\@myargs);
+    $config->args();               # uses @ARGV
 
-    myprog -verbose --debug
+Arguments are read and shifted from the array until the first is
+encountered that is not prefixed by '-' or '--'.  At that point, the
+method returns 1 to indicate success, leaving the remaining arguments
+remaining in the list.
 
-Variables that expect an additional argument (ARGS != 0) will be set to 
-the value of the argument following it.  If the next argument starts with 
-a '-' then a warning will be raised and the value will not be set.
+Each argument should be the name or alias of a variable prefixed by 
+'-' or '--'.  Arguments that are not prefixed as such (and are not an
+additional parameter to a previous argument) will cause a warning to be
+raised.  If the PEDANTIC option is set, the method will return 0 
+immediately.  With PEDANTIC unset (default), the method will continue
+to parse the rest of the arguments, returning 0 when done.
 
-    myprog --verbose -f /tmp/myfile
+If the variable is a simple flag (ARGCOUNT = ARGCOUNT_NONE)
+then it is set to the value 1.  The variable may be prefixed by "no" to
+set its value to 0.
+
+    myprog -verbose --debug -notaste     # $config->verbose(1)
+                                         # $config->debug(1)
+                                         # $config->taste(0)
+
+Variables that expect an additional argument (ARGCOUNT != 0) will be set to 
+the value of the argument following it.  
+
+    myprog -f /tmp/myfile                # $config->file('/tmp/file');
+
+Variables that expect multiple values (ARGCOUNT = ARGCOUNT_LIST or
+ARGCOUNT_HASH) will have sucessive values added each time the option
+is encountered.
+
+    myprog -file /tmp/foo -file /tmp/bar # $config->file('/tmp/foo')
+                                         # $config->file('/tmp/bar')
+
+    # file => [ '/tmp/foo', '/tmp/bar' ]
     
-Variables that do not expect a value (ARGS = 0) will be set to 1.
+    myprog -door "jim=Jim Morrison" -door "ray=Ray Manzarek"
+                                    # $config->door("jim=Jim Morrison");
+                                    # $config->door("ray=Ray Manzarek");
 
-Any arguments remaining at the end of the list that do not start with a
-'-' will not be processed.  These arguments will remain in the list when 
-args() returns.  Valid arguments and value will be removed from the list.
+    # door => { 'jim' => 'Jim Morrison', 'ray' => 'Ray Manzarek' }
 
 See L<AppConfig::Args> for further details on parsing command line
 arguments.
+
+The getopt() method provides a way to use the power and flexibility of
+the Getopt::Long module to parse command line arguments and have the 
+internal values of the AppConfig object updates automatically.
+
+The method is called as per args().  A reference to a list of arguments
+may be passed or @ARGV is used by default.
+
+The getopt() method constructs a specification string for each internal
+variable and then initialises Getopt::Long with these values.  The
+specification string is constructed from the name, any aliases (delimited
+by a vertical bar '|') and the value of the ARGS parameter.
+
+    $config->define("foo", {
+	ARGS  => "=i",
+	ALIAS => "bar|baz",
+    });
+
+    # Getopt::Long specification: "foo|bar|baz=i"
+
+Errors and warning generated by the Getopt::Long module are trapped and 
+handled by the AppConfig error handler.  This may be a user-defined 
+routine installed with the ERROR configuration option.
+
+Please note that the AppConfig::Getopt interface is still experimental
+and may not be 100% operational.  This is almost undoubtedly due to 
+problems in AppConfig::Getopt rather than Getopt::Long.
+
+=head1 CONSTANT DEFINITIONS
+
+A number of constants are defined by the AppConfig module.  These may be
+accessed directly (e.g. AppConfig::EXPAND_VARS) or by first importing them
+into the caller's package.  Constants are imported by specifying their 
+names as arguments to C<use AppConfig> or by importing a set of constants
+identified by its "tag set" name.
+
+    use AppConfig qw(ARGCOUNT_NONE ARGCOUNT_ONE);
+
+    use AppConfig qw(:argcount);
+
+The following tag sets are defined:
+
+=over 4
+
+=item :expand
+
+The ':expand' tagset defines the following constants:
+
+    EXPAND_NONE
+    EXPAND_VAR
+    EXPAND_UID 
+    EXPAND_ENV
+    EXPAND_ALL       # EXPAND_VARS | EXPAND_UIDS | EXPAND_ENVS
+    EXPAND_WARN
+
+See AppConfig::File for full details of the use of these constants.
+
+=item :argcount
+
+The ':argcount' tagset defines the following constants:
+
+    ARGCOUNT_NONE
+    ARGCOUNT_ONE
+    ARGCOUNT_LIST 
+    ARGCOUNT_HASH
+
+See AppConfig::State for full details of the use of these constants.
+
+=back
 
 =head1 AUTHOR
 
@@ -420,7 +878,7 @@ Web Technology Group, Canon Research Centre Europe Ltd.
 
 =head1 REVISION
 
-$Revision: 0.1 $
+$Revision: 1.50 $
 
 =head1 COPYRIGHT
 
@@ -432,6 +890,6 @@ under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
-AppConfig::State, AppConfig::File, AppConfig::Args
+AppConfig::State, AppConfig::File, AppConfig::Args, AppConfig::Getopt
 
 =cut

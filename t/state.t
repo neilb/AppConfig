@@ -20,7 +20,7 @@ $^W = 1;
 
 BEGIN { 
     $| = 1; 
-    print "1..31\n"; 
+    print "1..45\n"; 
 }
 
 END {
@@ -34,6 +34,7 @@ sub ok {
     ++$ok_count;
 }
 
+use AppConfig qw(:argcount);
 use AppConfig::State;
 $loaded = 1;
 ok(1);
@@ -87,13 +88,13 @@ my $state = AppConfig::State->new({
 	ERROR  => \&error,
 	GLOBAL => { 
 	    DEFAULT  => $default,
-	    ARGS     => 1,
+	    ARGCOUNT => ARGCOUNT_ONE,
 	},
     },
     'verbose', {
        	DEFAULT  => 0,
 	ACTION   => \&verbose,
-	ARGS     => 0,
+	ARGCOUNT => ARGCOUNT_NONE,
     },
     'user', {
 	ALIAS    => 'name|uid',
@@ -112,50 +113,52 @@ my $state = AppConfig::State->new({
 #
 
 #2: check state got defined
-ok(defined $state);
+ok( defined $state );
 
 #3 - #5: check default values
-ok($state->verbose() == 0);
-ok($state->user() eq $none);
-ok($state->age() eq $default);
+ok( $state->verbose() == 0        );
+ok( $state->user()    eq $none    );
+ok( $state->age()     eq $default );
 
-#6 - #8: check ARGS got set explicitly or by default
-ok($state->_args('verbose') == 0);
-ok($state->_args('user') == 1);
-ok($state->_args('age') == 1);
+#6 - #8: check ARGCOUNT got set explicitly or by default
+ok( $state->_argcount('verbose') == 0 );
+ok( $state->_argcount('user')    == 1 );
+ok( $state->_argcount('age')     == 1 );
 
-#9 - #11: set values and check they got set properly
-$state->verbose(1);
-ok($state->verbose() == 1);
-$state->user($user);
-ok($state->user() eq $user);
-$state->age($age);
-ok($state->age() == $age);
+#9 - #11: set values 
+ok( $state->verbose(1)  );
+ok( $state->user($user) );
+ok( $state->age($age)   );
 
-#12: test that the verbose ACTION was called and $verbose set
-ok($verbose == 1);
+#12 - #14: read them back to check values got set correctly
+ok( $state->verbose() == 1     );
+ok( $state->user()    eq $user );
+ok( $state->age()     == $age  );
 
-#13 - #16: test the VALIDATE patterns/subs by attempting to set invalid values
-ok(! $state->age('old'));
-ok($state->age() == $age);
-ok(! $state->user('dud'));
-ok($state->user() eq $user);
+#15: test that the verbose ACTION was called and $verbose set
+ok( $verbose == 1 );
 
-#17: check that the error handler correctly updated $errors
-ok($errors == 2);
+#16 - #19: test the VALIDATE patterns/subs by attempting to set invalid values
+ok( ! $state->age('old')      );
+ok(   $state->age()  == $age  );
+ok( ! $state->user('dud')     );
+ok(   $state->user() eq $user );
 
-#18 - #19: access variables via alias
-ok($state->name() eq $user);
-ok($state->uid() eq $user);
+#20: check that the error handler correctly updated $errors
+ok( $errors == 2 );
 
-#20 - #22: test case insensitivity
-ok($state->USER() eq $user);
-ok($state->NAME() eq $user);
-ok($state->UID() eq $user);
+#21 - #22: access variables via alias
+ok( $state->name() eq $user );
+ok( $state->uid()  eq $user );
 
-#23 - #24: explicitly test get() and set() methods
-ok($state->set('verbose', 100));
-ok($state->get('verbose') == 100);
+#23 - #25: test case insensitivity
+ok( $state->USER() eq $user );
+ok( $state->NAME() eq $user );
+ok( $state->UID()  eq $user );
+
+#26 - #27: explicitly test get() and set() methods
+ok( $state->set('verbose', 100)   );
+ok( $state->get('verbose') == 100 );
 
 
 #------------------------------------------------------------------------
@@ -169,19 +172,48 @@ my $newstate = AppConfig::State->new({
 	ERROR    => \&error,
     });
 
-#25: check state got defined
-ok(defined $newstate);
+#28: check state got defined
+ok( defined $newstate );
 
-#26 - #27: test CASE sensitivity
+#29 - #30: test CASE sensitivity
 $errors = 0;
-ok(! $newstate->Foo());
-ok($errors);
+ok( ! $newstate->Foo() );
+ok( $errors );
 
-#28 - #29: test PEDANTIC mode is/isn't set in states
-ok(! $state->_pedantic());
-ok($newstate->_pedantic());
+#31 - #32: test PEDANTIC mode is/isn't set in states
+ok( !  $state->_pedantic() );
+ok( $newstate->_pedantic() );
 
-#30 - #31: test auto-creation of define_ variable
-ok($newstate->define_user($user));
-ok($newstate->define_user() eq $user);
+#33 - #34: test auto-creation of define_ variable
+ok( $newstate->define_user($user)     );
+ok( $newstate->define_user() eq $user );
+
+
+
+#------------------------------------------------------------------------
+# define a third AppConfig::State object to test compact format
+#
+
+my $thirdstate = AppConfig::State->new("foo|bar|baz=s");
+
+#35: check state got defined
+ok( defined $thirdstate );
+
+$thirdstate->define("tom|dick|harry=i@");
+$thirdstate->define("red|green|blue=s");
+
+#36 - #42: check set()/get() for foo and aliases
+ok( $thirdstate->foo(5)     );
+ok( $thirdstate->foo() == 5 );
+ok( $thirdstate->bar(6)     );
+ok( $thirdstate->bar() == 6 );
+ok( $thirdstate->baz(7)     );
+ok( $thirdstate->baz() == 7 );
+ok( $thirdstate->foo() == 7 );
+
+#43 - #45: check ARGCOUNT for all vars
+ok( $thirdstate->_args('foo') eq '=s'  );
+ok( $thirdstate->_args('tom') eq '=i@' );
+ok( $thirdstate->_args('red') eq '=s'  );
+ 
 

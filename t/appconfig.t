@@ -34,7 +34,7 @@ sub ok {
     ++$ok_count;
 }
 
-use AppConfig;
+use AppConfig qw(:argcount);
 $loaded = 1;
 ok(1);
 
@@ -50,12 +50,12 @@ my $noage   = "<unborn>";
 my $config = AppConfig->new({ 
 	GLOBAL => { 
 	    DEFAULT  => $default,
-	    ARGS     => 1,
+	    ARGCOUNT => ARGCOUNT_ONE,
 	} 
     },
     'verbose', {
        	DEFAULT  => 0,
-	ARGS     => 0,
+	ARGCOUNT => ARGCOUNT_NONE,
     },
     'user', {
 	ALIAS    => 'name|uid',
@@ -68,7 +68,6 @@ $config->define(
 	VALIDATE => '\d+',
     });
 
-# $config->_dump();
    
 
 #------------------------------------------------------------------------
@@ -76,20 +75,20 @@ $config->define(
 #
 
 #2: check config got defined
-ok(defined $config);
+ok( defined $config );
 
 #3 - #5: check variables were defined
-ok($config->verbose() == 0);
-ok($config->user() eq $anon);
-ok($config->age() eq $noage);
+ok( $config->verbose() == 0      );
+ok( $config->user()    eq $anon  );
+ok( $config->age()     eq $noage );
 
 #6: read config file at DATA handle
-ok($config->file(\*DATA));
+ok( $config->file(\*DATA) );
 
 #7 - #9: check values got updated correctly
-ok($config->verbose() == 1);
-ok($config->user() eq 'abw');
-ok($config->age() == 42);
+ok( $config->verbose() == 1     );
+ok( $config->user()    eq 'abw' );
+ok( $config->age()     == 42    );
 
 
 __DATA__

@@ -12,7 +12,7 @@
 #
 #----------------------------------------------------------------------------
 #
-# $Id: Args.pm,v 0.1 1998/10/08 19:29:53 abw Exp abw $
+# $Id: Args.pm,v 1.50 1998/10/21 09:22:11 abw Exp abw $
 #
 #============================================================================
 
@@ -25,7 +25,7 @@ use AppConfig::State;
 use strict;
 use vars qw( $VERSION );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 0.1 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.50 $ =~ /(\d+)\.(\d+)/);
 
 
 
@@ -60,8 +60,8 @@ sub new {
 
     bless $self, $class;
 	
-    # call args() to parse any arg list passed 
-    $self->args(shift)
+    # call parse() to parse any arg list passed 
+    $self->parse(shift)
 	if @_;
 
     return $self;
@@ -71,23 +71,24 @@ sub new {
 
 #========================================================================
 #
-# args(\@args)
+# parse(\@args)
 #
 # Examines the argument list and updates the contents of the 
-# AppConfig::State referenced by $self->{ STATE } accordingly.  The 
-# method reports any warning conditions (such as undefined variables) by 
-# calling $self->{ STATE }->_error() and then continues to examine the rest
-# of the list.  If the PEDANTIC option is set in the AppConfig::State
-# object, this behaviour is overridden and the method returns 0 immediately
-# on any parsing error.
+# AppConfig::State referenced by $self->{ STATE } accordingly.  If 
+# no argument list is provided then the method defaults to examining 
+# @ARGV.  The method reports any warning conditions (such as undefined
+# variables) by calling $self->{ STATE }->_error() and then continues to
+# examine the rest of the list.  If the PEDANTIC option is set in the
+# AppConfig::State object, this behaviour is overridden and the method
+# returns 0 immediately on any parsing error.
 #
 # Returns 1 on success or 0 if one or more warnings were raised.
 #
 #========================================================================
 
-sub args {
+sub parse {
     my $self = shift;
-    my $argv = shift;
+    my $argv = shift || \@ARGV;
     my $warnings = 0;
     my ($arg, $nargs, $variable, $value);
 
@@ -110,11 +111,12 @@ sub args {
 	# check the variable exists
 	if ($state->_exists($variable)) {
 
-	    # see if it expects any extra arguments
-	    if ($nargs = $state->_args($variable)) {
+	    # see if it expects any mandatory arguments
+	    $nargs = $state->_argcount($variable);
+	    if ($nargs) {
 
 		# check there's another arg and it's not another '-opt'
-		if(defined($argv->[0]) && $argv->[0] !~ /^-/) {
+		if(defined($argv->[0])) {
 		    $value = shift(@$argv);
 		}
 		else {
@@ -160,7 +162,7 @@ AppConfig::Args - Perl5 module for reading command line arguments.
     my $state   = AppConfig::State->new(\%cfg);
     my $cfgargs = AppConfig::Args->new($state);
 
-    $cfgargs->args(\@args);            # read args
+    $cfgargs->parse(\@args);            # read args
 
 =head1 OVERVIEW
 
@@ -180,10 +182,9 @@ in your Perl script:
     use AppConfig::Args;
 
 AppConfig::Args is used automatically if you use the AppConfig module 
-and create an AppConfig::Args object through the args() method.
+and create an AppConfig::Args object through the parse() method.
       
 AppConfig::File is implemented using object-oriented methods.  A new 
-AppConfig::Args is implemented using object-oriented methods.  A new 
 AppConfig::Args object is created and initialised using the new() method.
 This returns a reference to a new AppConfig::File object.  A reference to
 an AppConfig::State object should be passed in as the first parameter:
@@ -195,14 +196,17 @@ This will create and return a reference to a new AppConfig::Args object.
 
 =head2 PARSING COMMAND LINE ARGUMENTS
 
-The C<args()> method is used to read a list of command line arguments and 
+The C<parse()> method is used to read a list of command line arguments and 
 update the STATE accordingly.  A reference to the list of arguments should
 be passed in.
 
-    $cfgargs->args(\@ARGV);
+    $cfgargs->parse(\@ARGV);
 
-If the PEDANTIC option is turned off in the App::State object, any parsing 
-errors (invalid variables, unvalidated values, etc) will generated
+If the method is called without a reference to an argument list then it
+will examine and manipulate @ARGV.
+
+If the PEDANTIC option is turned off in the AppConfig::State object, any 
+parsing errors (invalid variables, unvalidated values, etc) will generate
 warnings, but not cause the method to return.  Having processed all
 arguments, the method will return 1 if processed without warning or 0 if
 one or more warnings were raised.  When the PEDANTIC option is turned on,
@@ -217,14 +221,18 @@ for other options are not examined in this way.
 
 This module was developed to provide backwards compatibility (to some 
 degree) with the preceeding App::Config module.  The argument parsing 
-it provides is a little primitive and with the exception of bug fixes, 
-no further development effort of any significance will be spent on it.
+it provides is basic but offers a quick and efficient solution for those
+times when simple option handling is all that is required.
 
-The AppConfig::Getopt module (coming soon) provides considerably extended
-functionality over this module by delegating out the task of argument 
-parsing to Johan Vromans' Getopt::Long module.  For advanced command-line
-parsing, this module (either Getopt::Long by itself, or in conjunction
-with AppConfig::getopt) is highly recommended.
+If you require more flexibility in parsing command line arguments, then 
+you should consider using the AppConfig::Getopt module.  This is loaded 
+and used automatically by calling the AppConfig getopt() method.
+
+The AppConfig::Getopt module provides considerably extended functionality 
+over the AppConfig::Args module by delegating out the task of argument 
+parsing to Johan Vromans' Getopt::Long module.  For advanced command-line 
+parsing, this module (either Getopt::Long by itself, or in conjunction with 
+AppConfig::Getopt) is highly recommended.
 
 =head1 AUTHOR
 
@@ -234,7 +242,7 @@ Web Technology Group, Canon Research Centre Europe Ltd.
 
 =head1 REVISION
 
-$Revision: 0.1 $
+$Revision: 1.50 $
 
 =head1 COPYRIGHT
 
@@ -246,6 +254,6 @@ under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
-AppConfig, AppConfig::State, AppConfig::File
+AppConfig, AppConfig::State, AppConfig::Getopt, Getopt::Long
 
 =cut

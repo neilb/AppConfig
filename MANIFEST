@@ -5,8 +5,8 @@ TODO
 Makefile.PL
 AppConfig.pm
 AppConfig/Args.pm
-AppConfig/Const.pm
 AppConfig/File.pm
+AppConfig/Getopt.pm
 AppConfig/State.pm
 AppConfig/Sys.pm
 t/appconfig.t
@@ -14,6 +14,10 @@ t/args.t
 t/block.t
 t/const.t
 t/file.t
+t/flag.t
+t/getopt.t
+t/multi.t
+t/novars.t
 t/state.t
 t/sys.t
 examples/README

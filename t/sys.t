@@ -46,8 +46,8 @@ ok(1);
 my $sys    = AppConfig::Sys->new();            # auto-detect
 my $winsys = AppConfig::Sys->new('Windows');
 
-ok(defined $sys);
-ok(defined $winsys);
+ok( defined $sys    );
+ok( defined $winsys );
 
 $sys->_dump;
 $winsys->_dump();

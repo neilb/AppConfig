@@ -22,9 +22,7 @@ use strict;
 # yet.  It assumes you've run a "perl Makefile.PL; make" in the parent dir.
 use lib '../blib/lib';
 
-# explicitly use AppConfig::File to import the EXPAND_XXX constants
-use AppConfig::File qw(:expand);
-use AppConfig;
+use AppConfig qw(:expand :argcount);
 
 
 my $DEFAULT = "<default>";
@@ -71,12 +69,12 @@ sub check_file {
 my $config = AppConfig->new({ 
 	GLOBAL => { 
 	    DEFAULT  => $DEFAULT,
-	    ARGS     => 1,
+	    ARGCOUNT => 1,
 	} 
     },
     'verbose' => {
        	DEFAULT  => 0,
-	ARGS     => 0,
+	ARGCOUNT => 0,
 	ACTION   => \&notify,
     },
     'debug' => {

@@ -34,7 +34,7 @@ sub ok {
     ++$ok_count;
 }
 
-use AppConfig::Const ':expand';
+use AppConfig ':expand';
 $loaded = 1;
 ok(1);
 
@@ -43,21 +43,21 @@ ok(1);
 #2 - #5: test that the EXPAND_XXX constants got imported
 #
 
-ok(EXPAND_UID);
-ok(EXPAND_VAR);
-ok(EXPAND_ENV);
-ok(EXPAND_ALL == EXPAND_UID | EXPAND_VAR | EXPAND_ENV);
+ok( EXPAND_UID );
+ok( EXPAND_VAR );
+ok( EXPAND_ENV );
+ok( EXPAND_ALL == EXPAND_UID | EXPAND_VAR | EXPAND_ENV );
 
 
 #------------------------------------------------------------------------
 #6 - #9: test that the EXPAND_XXX package vars are defined
 #
 
-ok(AppConfig::Const::EXPAND_UID);
-ok(AppConfig::Const::EXPAND_VAR);
-ok(AppConfig::Const::EXPAND_ENV);
-ok(AppConfig::Const::EXPAND_ALL == 
-      AppConfig::Const::EXPAND_UID 
-    | AppConfig::Const::EXPAND_VAR 
-    | AppConfig::Const::EXPAND_ENV);
+ok( AppConfig::EXPAND_UID );
+ok( AppConfig::EXPAND_VAR );
+ok( AppConfig::EXPAND_ENV );
+ok( AppConfig::EXPAND_ALL == 
+    AppConfig::EXPAND_UID 
+  | AppConfig::EXPAND_VAR 
+  | AppConfig::EXPAND_ENV );
 

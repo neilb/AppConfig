@@ -12,15 +12,7 @@
 #
 #----------------------------------------------------------------------------
 #
-# TODO
-#
-# * Consider how we might move platform-specific code out to separate
-#   modules.  They can derive from AppConfig::Sys (to implement the
-#   interface) and be loaded automagically from AppConfig::Sys.
-#
-#----------------------------------------------------------------------------
-#
-# $Id: Sys.pm,v 0.1 1998/10/08 19:32:52 abw Exp abw $
+# $Id: Sys.pm,v 1.50 1998/10/21 09:27:18 abw Exp abw $
 #
 #============================================================================
 
@@ -31,7 +23,7 @@ require 5.004;
 use strict;
 use vars qw( $VERSION $AUTOLOAD $OS %CAN %METHOD);
 
-$VERSION = sprintf("%d.%02d", q$Revision: 0.1 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.50 $ =~ /(\d+)\.(\d+)/);
 
 BEGIN {
     # define the methods that may be available
@@ -225,8 +217,7 @@ __END__
 
 =head1 NAME
 
-AppConfig::Sys - Perl5 module defining platform-specific information and
-methods for other AppConfig::* modules.
+AppConfig::Sys - Perl5 module defining platform-specific information and methods for other AppConfig::* modules.
 
 =head1 SYNOPSIS
 
@@ -238,11 +229,10 @@ methods for other AppConfig::* modules.
 
 =head1 OVERVIEW
 
-AppConfig::Sys is a Perl5 module defining a base class for an object
-hierarchy that provides platform-specific information and operations as
-required by other AppConfig::* modules.
+AppConfig::Sys is a Perl5 module provides platform-specific information and
+operations as required by other AppConfig::* modules.
 
-AppConfig::State is distributed as part of the AppConfig bundle.
+AppConfig::Sys is distributed as part of the AppConfig bundle.
 
 =head1 DESCRIPTION
 
@@ -253,7 +243,7 @@ appear in your Perl script:
 
      use AppConfig::Sys;
 
-AppConfig::State is implemented using object-oriented methods.  A new
+AppConfig::Sys is implemented using object-oriented methods.  A new
 AppConfig::Sys object is created and initialised using the
 AppConfig::Sys->new() method.  This returns a reference to a new
 AppConfig::Sys object.  
@@ -261,9 +251,9 @@ AppConfig::Sys object.
     my $sys = AppConfig::Sys->new();
 
 This will attempt to detect your operating system and create a reference to
-a new AppConfig::Sys object, or derivative, that is applicable to your
-platform.  You may explicitly specify an operating system name to override
-this automatic detection:
+a new AppConfig::Sys object that is applicable to your platform.  You may 
+explicitly specify an operating system name to override this automatic 
+detection:
 
     $unix_sys = AppConfig::Sys->new("Unix");
 
@@ -281,13 +271,13 @@ AppConfig::Sys defines the following methods:
 
 Calls the system function getpwnam() if available and returns the result.
 Returns undef if not available.  The can_getpwnam() method can be called to
-determine if this function as available.
+determine if this function is available.
 
 =item getpwuid()
 
 Calls the system function getpwuid() if available and returns the result.
 Returns undef if not available.  The can_getpwuid() method can be called to
-determine if this function as available.
+determine if this function is available.
 
 =item 
 
@@ -299,7 +289,7 @@ Web Technology Group, Canon Research Centre Europe Ltd.
 
 =head1 REVISION
 
-$Revision: 0.1 $
+$Revision: 1.50 $
 
 =head1 COPYRIGHT
 
