@@ -10,7 +10,7 @@
 # Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 #
-# $Id: Args.pm,v 1.2 2003/04/29 09:22:33 abw Exp $
+# $Id: Args.pm,v 1.60 2003/04/29 10:42:39 abw Exp $
 #
 #============================================================================
 
@@ -21,7 +21,7 @@ use AppConfig::State;
 use strict;
 use vars qw( $VERSION );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.60 $ =~ /(\d+)\.(\d+)/);
 
 
 #------------------------------------------------------------------------
@@ -231,7 +231,7 @@ Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
 =head1 REVISION
 
-$Revision: 1.2 $
+$Revision: 1.60 $
 
 =head1 COPYRIGHT
 

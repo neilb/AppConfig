@@ -12,7 +12,7 @@
 # Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 #
-# $Id: State.pm,v 1.2 2003/04/29 09:22:33 abw Exp $
+# $Id: State.pm,v 1.60 2003/04/29 10:43:28 abw Exp $
 #
 #----------------------------------------------------------------------------
 #
@@ -48,7 +48,7 @@ use vars qw( $VERSION $AUTOLOAD $DEBUG );
 # need access to AppConfig::ARGCOUNT_*
 use AppConfig qw(:argcount);
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.60 $ =~ /(\d+)\.(\d+)/);
 $DEBUG   = 0;
 
 # internal per-variable hashes that AUTOLOAD should provide access to
@@ -1398,7 +1398,7 @@ Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
 =head1 REVISION
 
-$Revision: 1.2 $
+$Revision: 1.60 $
 
 =head1 COPYRIGHT
 

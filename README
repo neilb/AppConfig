@@ -1,4 +1,4 @@
-This is the README file for AppConfig Version 1.54
+This is the README file for AppConfig Version 1.55
 
 AppConfig is a bundle of Perl5 modules for reading configuration files 
 and parsing command line arguments.  This is a descendant of, and 
@@ -162,7 +162,7 @@ AUTHOR
     Andy Wardley, <abw@wardley.org>
 
 VERSION
-    This is version 1.54.
+    This is version 1.55.
 
 COPYRIGHT
     Copyright (C) 1997-2003 Andy Wardley. All Rights Reserved.

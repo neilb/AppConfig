@@ -10,7 +10,7 @@
 # Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 #
-# $Id: Sys.pm,v 1.2 2003/04/29 09:22:33 abw Exp $
+# $Id: Sys.pm,v 1.60 2003/04/29 10:43:31 abw Exp $
 #
 #============================================================================
 
@@ -20,7 +20,7 @@ require 5.004;
 use strict;
 use vars qw( $VERSION $AUTOLOAD $OS %CAN %METHOD);
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.60 $ =~ /(\d+)\.(\d+)/);
 
 BEGIN {
     # define the methods that may be available
@@ -264,7 +264,7 @@ Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
 =head1 REVISION
 
-$Revision: 1.2 $
+$Revision: 1.60 $
 
 =head1 COPYRIGHT
 

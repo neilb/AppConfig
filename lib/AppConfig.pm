@@ -25,7 +25,7 @@ use base qw( Exporter );
 
 ## This is the main version number for AppConfig
 ## It is extracted by ExtUtils::MakeMaker and inserted in various places.
-$VERSION = '1.54';
+$VERSION = '1.55';
 
 # variable expansion constants
 use constant EXPAND_NONE    => 0;
@@ -1018,7 +1018,7 @@ Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
 =head1 REVISION
 
-Revision $Revision: 1.4 $ distributed as part of AppConfig 1.54.
+Revision $Revision: 1.4 $ distributed as part of AppConfig 1.55.
 
 =head1 COPYRIGHT
 
