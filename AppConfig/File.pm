@@ -1,0 +1,553 @@
+#============================================================================
+#
+# AppConfig::File.pm
+#
+# Perl5 module to read configuration files and use the contents therein 
+# to update variable values in an AppConfig::State object.
+#
+# Written by Andy Wardley <abw@cre.canon.co.uk>
+#
+# Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
+# All Rights Reserved.
+#
+#----------------------------------------------------------------------------
+#
+# $Id: File.pm,v 0.1 1998/10/08 19:52:28 abw Exp abw $
+#
+#============================================================================
+
+package AppConfig::File;
+
+require 5.004;
+
+use AppConfig::Const ':expand';
+use AppConfig::State;
+
+use strict;
+use vars qw( $VERSION );
+
+$VERSION = sprintf("%d.%02d", q$Revision: 0.1 $ =~ /(\d+)\.(\d+)/);
+
+
+
+#========================================================================
+#                      -----  PUBLIC METHODS -----
+#========================================================================
+
+#========================================================================
+#
+# new($state, $file, [$file, ...])
+#
+# Module constructor.  The first, mandatory parameter should be a 
+# reference to an AppConfig::State object to which all actions should 
+# be applied.  The remaining parameters are assumed to be file names or
+# file handles for reading and are passed to read().
+#
+# Returns a reference to a newly created AppConfig::File object.
+#
+#========================================================================
+
+sub new {
+    my $class = shift;
+    my $state = shift;
+    
+
+    my $self = {
+	STATE    => $state,                # AppConfig::State ref
+	DEBUG    => $state->_debug(),      # store local copy of debug 
+	PEDANTIC => $state->_pedantic,     # and pedantic flags
+    };
+
+    bless $self, $class;
+
+    # call read(@_) to parse any files specified as further params
+    $self->read(@_)
+	if @_;
+
+    return $self;
+}
+
+
+
+#========================================================================
+#
+# read($file, [file, ...])
+#
+# Reads and parses a config file, updating the contents of the 
+# AppConfig::State referenced by $self->{ STATE } according to the 
+# contents of the file.  Multiple files may be specified and are 
+# examined in turn.  The method reports any error condition via 
+# $self->{ STATE }->_error() and immediately returns undef if it 
+# encounters a system error (i.e. cannot open one of the files.  
+# Parsing errors such as unknown variables or unvalidated values will 
+# also cause warnings to be raised vi the same _error(), but parsing
+# continues to the end of the current file and through any subsequent
+# files.  If the PEDANTIC option is set in the $self->{ STATE } object, 
+# the behaviour is overridden and the method returns 0 immediately on 
+# any system or parsing error.
+#
+# The EXPAND option for each variable determines how the variable
+# value should be expanded.
+#
+# Returns undef on system error, 0 if all files were parsed but generated
+# one or more warnings, 1 if all files parsed without warnings.
+#
+#========================================================================
+
+sub read {
+    my $self     = shift;
+    my $warnings = 0;
+    my $prefix;           # [block] defines $prefix
+    my $file;
+
+
+    # take a local copy of the state to avoid much hash dereferencing
+    my ($state, $debug, $pedantic) = @$self{ qw( STATE DEBUG PEDANTIC ) };
+
+    # we want to install a custom error handler into the AppConfig::State 
+    # which appends filename and line info to error messages and then 
+    # calls the previous handler;  we start by taking a copy of the 
+    # current handler..
+    my $errhandler = $state->_ehandler();
+
+    # ...and if it doesn't exist, we craft a default handler
+    $errhandler = sub { warn(sprintf(shift, @_), "\n") }
+	unless defined $errhandler;
+
+    # install a closure as a new error handler
+    $state->_ehandler(
+	sub {
+	    # modify the error message 
+	    my $format  = shift;
+	       $format .= ref $file 
+	                  ? " at line $."
+	                  : " at $file line $.";
+
+	    # chain call to prevous handler
+	    &$errhandler($format, @_);
+	}
+    );
+
+    # trawl through all files passed as params
+    FILE: while ($file = shift) {
+
+	# local/lexical vars ensure opened files get closed
+	my $handle;
+	local *FH;
+
+	# if the file is a reference, we assume it's a file handle, if
+	# not, we assume it's a filename and attempt to open it
+	$handle = $file;
+	if (ref($file)) {
+	    $handle = $file;
+
+	    # DEBUG
+	    print STDERR "reading from file handle: $file\n" if $debug;
+	}
+	else {
+	    # open and read config file
+	    open(FH, $file) or do {
+		# restore original error handler and report error
+	    	$state->_ehandler($errhandler);
+		$state->_error("$file: $!");
+
+		return undef;
+	    };
+	    $handle = \*FH;
+
+	    # DEBUG
+	    print STDERR "reading file: $file\n" if $debug;
+	}
+
+	# initialise $prefix to nothing (no [block])
+	$prefix = '';
+
+	while (<$handle>) {
+	    chomp;
+
+	    # add next line if there is one and this is a continuation
+	    if (s/\\$// && !eof($handle)) {
+		$_ .= <$handle>;
+		redo;
+	    }
+
+	    # ignore blank lines and comments
+	    next if /^\s*$/ || /^#/;
+
+	    # strip leading and trailing whitespace
+	    s/^\s+//;
+	    s/\s+$//;
+
+	    # look for a [block] to set $prefix
+	    if (/^\[([^\]]+)\]$/) {
+		$prefix = $1;
+		print STDERR "Entering [$prefix] block\n" if $debug;
+		next;
+	    }
+
+	    # split line up by whitespace (\s+) or "equals" (\s*=\s*)
+	    if (/^([^\s=]+)(?:(?:(?:\s*=\s*)|\s+)(.*))?/) {
+		my ($variable, $value) = ($1, $2);
+
+		# $variable gets any $prefix 
+		$variable = $prefix . '_' . $variable
+		    if length $prefix;
+
+		my $nargs = $state->_args($variable);
+
+		unless (defined $value && length $value) {
+		    # determine if any extra arguments were expected
+		    if ($nargs) {
+			$state->_error("$variable expects an argument");
+			$warnings++;
+			last ARG if $pedantic;
+			next;
+		    }
+		    else {
+			# default value to 1
+			$value = 1;
+		    }
+		}
+	    
+		# expand any embedded variables, ~uids or environment 
+		# variables, testing the return value for errors;  we pass
+		# in any variable-specific EXPAND value 
+		unless ($self->_expand(\$value, $state->_expand($variable))) {
+		    print STDERR "expansion of [$value] failed" if $debug;
+		    $warnings++;
+		    last FILE if $pedantic;
+		}
+
+		# set the variable, noting any failure from set()
+		unless ($state->set($variable, $value)) {
+		    $warnings++;
+		    last FILE if $pedantic;
+		}
+	    }
+	    else {
+		$state->_error("parse error");
+		$warnings++;
+	    }
+	}
+    }
+
+    # restore original error handler
+    $state->_ehandler($errhandler);
+    
+    # return $warnings => 0, $success => 1
+    return $warnings ? 0 : 1;
+}
+
+
+
+#========================================================================
+#                      -----  PRIVATE METHODS -----
+#========================================================================
+
+#========================================================================
+#
+# _expand(\$value, $expand)
+#
+# The variable value string, referenced by $value, is examined and any 
+# embedded variables, environment variables or tilde globs (home 
+# directories) are replaced with their respective values, depending on 
+# the value of the second parameter, $expand.
+#
+# Modifications are made directly into the variable referenced by $value.
+# The method returns 1 on success or 0 if any warnings (undefined 
+# variables) were encountered.
+#
+#========================================================================
+
+sub _expand {
+    my ($self, $value, $expand) = @_;
+    my $warnings = 0;
+    my ($sys, $var, $val);
+
+
+    # take a local copy of the state to avoid much hash dereferencing
+    my ($state, $debug, $pedantic) = @$self{ qw( STATE DEBUG PEDANTIC ) };
+
+    # bail out if there's nothing to do
+    return 1 unless $expand && defined($$value);
+
+    # create an AppConfig::Sys instance, or re-use a previous one, 
+    # to handle platform dependant functions: getpwnam(), getpwuid()
+    unless ($sys = $self->{ SYS }) {
+	require AppConfig::Sys;
+	$sys = $self->{ SYS } = AppConfig::Sys->new();
+    }
+
+    print STDERR "Expansion of [$$value] " if $debug;
+
+
+    EXPAND: {
+
+        # 
+	# EXPAND_VAR
+	# expand $(var) and $var as AppConfig::State variables
+	#
+	if ($expand & EXPAND_VAR) {
+
+	    $$value =~ s{
+		\$ (?: \((\w+)\) | (\w+) )  # $1 => $(var) | $2 => $var
+	    } {
+		# embedded variable name will be one of $1 or $2
+		$var = defined $1 ? $1 : $2;		
+
+		# expand the variable if defined
+		if ($state->_exists($var)) {
+		    $val = $state->get($var);
+		}
+		else {
+		    # raise a warning if EXPAND_WARN set
+		    if ($expand & EXPAND_WARN) {
+			$state->_error("$var: no such variable");
+			$warnings++;
+		    }
+
+		    # replace variable with nothing
+		    $val = '';
+		}
+
+		# $val gets substituted back into the $value string
+		$val;
+	    }gex;
+
+	    # bail out now if we need to
+	    last EXPAND if $warnings && $pedantic;
+	}
+
+
+	#
+	# EXPAND_UID
+	# expand ~uid as home directory (for $< if uid not specified)
+	#
+	if ($expand & EXPAND_UID) {
+
+	    $$value =~ s{
+		~(\w+)?                    # $1 => username (optional)
+	    } {
+		$val = undef;
+
+		# embedded user name may be in $1
+		if (defined ($var = $1)) {
+		    # try and get user's home directory
+		    if ($sys->can_getpwnam()) {
+			$val = ($sys->getpwnam($var))[7];
+		    }
+		}
+		else {
+		    # determine home directory 
+		    unless (defined($val = $self->{ HOME })) {
+			if (exists $ENV{ HOME }) {
+			    $val = $ENV{ HOME };
+			}
+			elsif ($sys->can_getpwuid()) {
+			    $val = ($sys->getpwuid($<))[7];
+			}
+
+			# cache value for next time
+			$self->{ HOME } = $val;
+		    }
+		}
+
+		# catch-all for undefined $dir
+		unless (defined $val) {
+		    # raise a warning if EXPAND_WARN set
+		    if ($expand & EXPAND_WARN) {
+			$state->_error("cannot determine home directory%s",
+			    defined $var ? " for $var" : "");
+			$warnings++;
+		    }
+
+		    # replace variable with nothing
+		    $val = '';
+		}
+
+		# $val gets substituted back into the $value string
+		$val;
+	    }gex;
+
+	    # bail out now if we need to
+	    last EXPAND if $warnings && $pedantic;
+	}
+
+
+	#
+	# EXPAND_ENV
+	# expand ${VAR} as environment variables
+	#
+	if ($expand & EXPAND_ENV) {
+
+	    $$value =~ s{ 
+		( \$ \{ (\w+) \} )
+	    } {
+		$var = $2;
+
+		# expand the variable if defined
+		if (exists $ENV{ $var }) {
+		    $val = $ENV{ $var };
+		}
+		else {
+		    # raise a warning if EXPAND_WARN set
+		    if ($expand & EXPAND_WARN) {
+			$state->_error("$var: no such environment variable");
+			$warnings++;
+		    }
+
+		    # replace variable with nothing
+		    $val = '';
+		}
+		# $val gets substituted back into the $value string
+		$val;
+	    }gex;
+
+	    # bail out now if we need to
+	    last EXPAND if $warnings && $pedantic;
+	}
+    }
+
+    print STDERR "=> [$$value] (EXPAND = $expand)\n" if $debug;
+
+    # return status 
+    return $warnings ? 0 : 1;
+}
+
+
+
+#========================================================================
+#
+# _dump()
+#
+# Dumps the contents of the Config object.
+#
+#========================================================================
+
+sub _dump {
+    my $self = shift;
+
+    foreach my $key (keys %$self) {
+	printf("%-10s => %s\n", $key, 
+		defined($self->{ $key }) ? $self->{ $key } : "<undef>");
+    }	    
+} 
+
+
+
+1;
+
+__END__
+
+=head1 NAME
+
+AppConfig::File - Perl5 module for reading configuration files.
+
+=head1 SYNOPSIS
+
+    use AppConfig::File;
+
+    my $state   = AppConfig::State->new(\%cfg1);
+    my $cfgfile = AppConfig::File->new($state, $file);
+
+    $cfgfile->read($file);            # read config file
+
+=head1 OVERVIEW
+
+AppConfig::File is a Perl5 module which reads configuration files and use 
+the contents therein to update variable values in an AppConfig::State 
+object.
+
+AppConfig::File is distributed as part of the AppConfig bundle.
+
+=head1 DESCRIPTION
+
+=head2 USING THE AppConfig::File MODULE
+
+To import and use the AppConfig::File module the following line should appear
+in your Perl script:
+
+    use AppConfig::File;
+
+AppConfig::File is used automatically if you use the AppConfig module 
+and create an AppConfig::File object through the file() method.
+
+AppConfig::File is implemented using object-oriented methods.  A new 
+AppConfig::File object is created and initialised using the 
+AppConfig::File->new() method.  This returns a reference to a new 
+AppConfig::File object.  A reference to an AppConfig::State object 
+should be passed in as the first parameter:
+       
+    my $state   = AppConfig::State->new();
+    my $cfgfile = AppConfig::File->new($state);
+
+This will create and return a reference to a new AppConfig::File object.
+
+=head2 READING CONFIGURATION FILES 
+
+The C<read()> method is used to read a configuration file and have the 
+contents update the STATE accordingly.
+
+    $cfgfile->read($file);
+
+Multiple files maye be specified and will be read in turn.
+
+    $cfgfile->read($file1, $file2, $file3);
+
+The method will return an undef value if it encounters any errors opening
+the files.  It will return immediately without processing any further files.
+By default, the PEDANTIC option in the AppConfig::State object, 
+$self->{ STATE }, is turned off and any parsing errors (invalid variables,
+unvalidated values, etc) will generated warnings, but not cause the method
+to return.  Having processed all files, the method will return 1 if all
+files were processed without warning or 0 if one or more warnings were
+raised.  When the PEDANTIC option is turned on, the method generates a
+warning and immediately returns a value of 0 as soon as it encounters any
+parsing error.
+
+Variables values in the configuration files may be expanded depending on 
+the value of their EXPAND option, as determined from the App::State object.
+See L<AppConfig::State> for more information on variable expansion.
+
+=head2 CONFIGURATION FILE FORMAT
+
+# TODO: describe
+
+=head2 BLOCK DEFINITIONS
+
+The AppConfig::File module supports the use of blocks within the
+configuration files it reads.  A block header, consisting of the block name
+in square brackets, introduces a configuration block.  The block name
+and an underscore are then prefixed to the names of all variables
+subsequently referenced in that block.  The block continues until the 
+next block definition or to the end of the current file.
+
+    [block1]
+    foo = 10             # block1_foo = 10
+
+    [block2]
+    foo = 20             # block2_foo = 20
+
+=head1 AUTHOR
+
+Andy Wardley, C<E<lt>abw@cre.canon.co.ukE<gt>>
+
+Web Technology Group, Canon Research Centre Europe Ltd.
+
+=head1 REVISION
+
+$Revision: 0.1 $
+
+=head1 COPYRIGHT
+
+Copyright (C) 1998 Canon Research Centre Europe Ltd.  
+All Rights Reserved.
+
+This module is free software; you can redistribute it and/or modify it 
+under the same terms as Perl itself.
+
+=head1 SEE ALSO
+
+AppConfig, AppConfig::State, AppConfig:Args, :AppConfig::Const
+
+=cut

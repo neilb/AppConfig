@@ -1,0 +1,41 @@
+AppConfig::State
+
+* define() should accept a variable name parameter of the GetOpt::Long
+  form: e.g. "foo|bar|baz=i@" and extract the relevant configuration
+  information from it.
+
+* Perhaps allow a callback to be installed which is called *instead* of
+  the get() and set() methods (or rather, is called by them).
+
+* CASE sensitivity may be required on a per-operation basis.  E.g. CASE
+  sensitive for AppConfig::Args but CASE insensitive for AppConfig::File.
+
+* Allow a state definition to supply additional sub-states that represent
+  a [block] inside a configuration file.  This would permit one block to
+  have a different policy (e.g. CREATE) from others.
+
+* AppConfig::State may need to have CMDARG re-introduced.  When using
+  blocks, it will be considerably more convenient to say '-v' rather
+  than -block_verbose.  The global CMDARG could be '%c' to indicate 
+  the first character.
+
+
+AppConfig::Getopt
+
+* Create AppConfig::Getopt module to delegate to Getopt::Long
+
+
+AppConfig::Sys
+
+* Consider moving platform-specific code out to separate per-platform
+  modules.
+
+
+Documentation
+
+* Creation of AppConfig::File and AppConfig::Args object through the
+  AppConfig object
+
+* Expansion of variables in AppConfig::File
+
+

@@ -1,0 +1,32 @@
+#!/usr/bin/perl -w
+#========================================================================
+#
+# examples/simple
+#
+# AppConfig example file.  Demonstrates basic use.
+#
+# Written by Andy Wardley <abw@cre.canon.co.uk>
+#
+# Copyright (C) 1998 Canon Research Centre Europe Ltd.
+# All Rights Reserved.
+#
+# This is free software; you can redistribute it and/or modify it
+# under the same terms as Perl itself.
+#
+#========================================================================
+
+use strict;
+
+# This line will help perl find the modules if you haven't installed them
+# yet.  It assumes you've run a "perl Makefile.PL; make" in the parent dir.
+use lib '../blib/lib';
+use AppConfig;
+
+my $config = AppConfig->new('verbose', 'debug', 'logfile', 'summary');
+
+$config->file('sample.config');
+
+print "verbose: ", $config->verbose(), "\n";
+print "  debug: ", $config->debug(), "\n";
+print "logfile: ", $config->logfile(), "\n";
+print "summary: ", $config->summary(), "\n";

@@ -1,0 +1,109 @@
+#!/usr/bin/perl -w
+#========================================================================
+#
+# examples/complex
+#
+# AppConfig example file.  This demonstrates most of the AppConfig::File
+# features.
+#
+# Written by Andy Wardley <abw@cre.canon.co.uk>
+#
+# Copyright (C) 1998 Canon Research Centre Europe Ltd.
+# All Rights Reserved.
+#
+# This is free software; you can redistribute it and/or modify it
+# under the same terms as Perl itself.
+#
+#========================================================================
+
+use strict;
+
+# This line will help perl find the modules if you haven't installed them
+# yet.  It assumes you've run a "perl Makefile.PL; make" in the parent dir.
+use lib '../blib/lib';
+
+# explicitly use AppConfig::File to import the EXPAND_XXX constants
+use AppConfig::File qw(:expand);
+use AppConfig;
+
+
+my $DEFAULT = "<default>";
+my $DEFLOG  = '/tmp/log';
+
+
+#------------------------------------------------------------------------
+# define various handlers, callbacks, validators, etc.,
+#------------------------------------------------------------------------
+
+# update notification handler
+sub notify {
+    my $state    = shift;
+    my $variable = shift;
+    my $value    = shift;
+
+    print STDERR "NOTIFY: $variable has been turned ", 
+	$value ? "on" : "off", "\n";
+}
+
+# error handler
+sub error_handler {
+    my $format = shift;
+
+    printf STDERR "ERROR!: $format\n", @_;
+}
+
+# validation handler
+sub check_file {
+    my $variable = shift;
+    my $value    = shift;
+
+    print STDERR "check_file($variable, $value)\n";
+
+    # we'll assume it's ok to set this value
+    return 1;
+}
+
+
+#------------------------------------------------------------------------
+# create an AppConfig insteance
+#------------------------------------------------------------------------
+
+my $config = AppConfig->new({ 
+	GLOBAL => { 
+	    DEFAULT  => $DEFAULT,
+	    ARGS     => 1,
+	} 
+    },
+    'verbose' => {
+       	DEFAULT  => 0,
+	ARGS     => 0,
+	ACTION   => \&notify,
+    },
+    'debug' => {
+	ALIAS    => 'help',
+	ACTION   => \&notify,
+    },
+    'logfile' => {
+	DEFAULT  => $DEFLOG,
+	VALIDATE => \&check_file,
+    },
+    'summary' => {
+	EXPAND => EXPAND_VAR,
+    });
+
+
+#------------------------------------------------------------------------
+# now use it
+#------------------------------------------------------------------------
+
+# turn debug on ("help" is an alias)
+$config->help(1);
+
+$config->file('sample.config');
+
+print "verbose: ", $config->verbose(), "\n";
+print "  debug: ", $config->debug(), "\n";
+print "logfile: ", $config->logfile(), "\n";
+print "summary: ", $config->summary(), "\n";
+
+

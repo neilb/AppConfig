@@ -1,0 +1,9 @@
+This directory contains a few sample scripts showing AppConfig usage.
+
+  simple         # simple example demonstrating config file reading
+  expand1        # as above with expansion of all variables
+  expand1        # ditto with variable-specific expansion 
+  complex        # more complex example
+
+  sample.config  # sample configuration file read by above scripts
+
