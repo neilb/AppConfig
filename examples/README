@@ -7,3 +7,14 @@ This directory contains a few sample scripts showing AppConfig usage.
 
   sample.config  # sample configuration file read by above scripts
 
+
+#========================================================================
+
+NOTE: these examples haven't been updated since a very early internal
+version of AppConfig and are far from complete.  The test files in 
+the 't' sub directory contains many more reliable examples of usage.
+
+- abw 29-Oct-1998
+
+#========================================================================
+

@@ -12,7 +12,9 @@ AppConfig/Sys.pm
 t/appconfig.t
 t/args.t
 t/block.t
+t/compact.t
 t/const.t
+t/default.t
 t/file.t
 t/flag.t
 t/getopt.t

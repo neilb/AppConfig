@@ -17,7 +17,7 @@
 #
 #----------------------------------------------------------------------------
 #
-# $Id: Getopt.pm,v 1.50 1998/10/21 09:24:56 abw Exp abw $
+# $Id: Getopt.pm,v 1.51 1998/10/29 11:01:31 abw Exp abw $
 #
 #============================================================================
 
@@ -26,12 +26,12 @@ package AppConfig::Getopt;
 require 5.004;
 
 use AppConfig::State;
-use Getopt::Long 2.93;
+use Getopt::Long 2.17;
 
 use strict;
 use vars qw( $VERSION );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.50 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.51 $ =~ /(\d+)\.(\d+)/);
 
 
 
@@ -85,10 +85,11 @@ sub new {
 #========================================================================
 
 sub parse {
-    my $self   = shift;
-    my $state  = $self->{ STATE };
+    my $self  = shift;
+    my $state = $self->{ STATE };
     my (@config, $args, $getopt);
     
+    local $" = ', ';
 
     # we trap $SIG{__WARN__} errors and patch them into AppConfig::State
     local $SIG{__WARN__} = sub {
@@ -101,21 +102,33 @@ sub parse {
     };
     
     # slurp all config items into @config
-    push(@config, shift) while ! ref($_[0]);   
+    push(@config, shift) while defined $_[0] && ! ref($_[0]);   
 
-    # add debug status is appropriate
-    push(@config, 'debug') if $state->_debug();
+    # add debug status if appropriate (hmm...can't decide about this)
+#    push(@config, 'debug') if $state->_debug();
 
-    # $args should be the next parameter
-    $args = shift || [];
+    # next parameter may be a reference to a list of args
+    $args = shift;
+
+    # copy any args explicitly specified into @ARGV
+    @ARGV = @$args if defined $args;
 
     # we enclose in an eval block because constructor may die()
     eval {
-	$getopt = $self->{ GETOPT } ||= Getopt::Long->new(
-		-Linkage => sub { $state->set(@_) },
-		-Config  => [ @config ],
-		-Spec    => [ $self->{ STATE   }->_getopt_state() ],
-	    );
+	# configure Getopt::Long
+	Getopt::Long::Configure(@config);
+
+	# construct options list from AppConfig::State variables
+	my @opts = $self->{ STATE   }->_getopt_state();
+
+	# DEBUG
+	if ($state->_debug()) {
+	    print STDERR "Calling GetOptions(@opts)\n";
+	    print STDERR "\@ARGV = (@ARGV)\n";
+	};
+
+	# call GetOptions() with specifications constructed from the state
+	$getopt = GetOptions(@opts);
     };
     if ($@) {
 	chomp($@);
@@ -123,7 +136,11 @@ sub parse {
 	return 0;
     }
 
-    return $getopt->parse($args) ? 1 : 0;
+    # udpdate any args reference passed to include only that which is left 
+    # in @ARGV
+    @$args = @ARGV if defined $args;
+
+    return $getopt;
 }
 
 
@@ -154,14 +171,29 @@ package AppConfig::State;
 
 sub _getopt_state {
     my $self = shift;
-    my ($var, $spec, @specs);
+    my ($var, $spec, $args, $argcount, @specs);
 
+    my $linkage = sub { $self->set(@_) };
 
     foreach $var (keys %{ $self->{ VARIABLE } }) {
-	$spec  = join('|', $var, @{ $self->{ ALIASES }->{ $var } });
-	$spec .= $self->{ ARGS }->{ $var }
-	    if $self->{ ARGS }->{ $var };
-	push(@specs, $spec);
+	$spec  = join('|', $var, @{ $self->{ ALIASES }->{ $var } || [ ] });
+
+	# an ARGS value is used, if specified
+	unless (defined ($args = $self->{ ARGS }->{ $var })) {
+	    # otherwise, construct a basic one from ARGCOUNT
+	    ARGCOUNT: {
+		last ARGCOUNT unless 
+		    defined ($argcount = $self->{ ARGCOUNT }->{ $var });
+
+		$args = "=s",  last ARGCOUNT if $argcount eq ARGCOUNT_ONE;
+		$args = "=s@", last ARGCOUNT if $argcount eq ARGCOUNT_LIST;
+		$args = "=s%", last ARGCOUNT if $argcount eq ARGCOUNT_HASH;
+		$args = "!";
+	    }
+	}
+	$spec .= $args if defined $args;
+
+	push(@specs, $spec, $linkage);
     }
 
     return @specs;
@@ -220,10 +252,19 @@ This will create and return a reference to a new AppConfig::Getopt object.
 =head2 PARSING COMMAND LINE ARGUMENTS
 
 The C<parse()> method is used to read a list of command line arguments and 
-update the state accordingly.  A reference to the list of arguments should
-be passed in or @ARGV is used as the default.
+update the state accordingly.  
 
-    $getopt->parse(\@ARGV);
+The first (non-list reference) parameters may contain a number of 
+configuration strings to pass to Getopt::Long::Configure.  A reference 
+to a list of arguments may additionally be passed or @ARGV is used by 
+default.
+
+    $getopt->parse();                       # uses @ARGV
+    $getopt->parse(\@myargs);
+    $getopt->parse(qw(auto_abbrev debug));  # uses @ARGV
+    $getopt->parse(qw(debug), \@myargs);
+
+See Getopt::Long for details of the configuartion options available.
 
 A Getopt::Long specification string is constructed for each variable 
 defined in the AppConfig::State.  This consists of the name, any aliases
@@ -231,6 +272,9 @@ and the ARGS value for the variable.
 
 These specification string are then passed to Getopt::Long, the arguments
 are parsed and the values in the AppConfig::State updated.
+
+See AppConfig for information about using the AppConfig::Getopt
+module via the getopt() method.
 
 =head1 AUTHOR
 
@@ -244,13 +288,9 @@ Many thanks are due to Johan Vromans for the Getopt::Long module.  He was
 kind enough to offer assistance and access to early releases of his code to 
 enable this module to be written.
 
-=head1 BUGS
-
-This documentation is incomplete.
-
 =head1 REVISION
 
-$Revision: 1.50 $
+$Revision: 1.51 $
 
 =head1 COPYRIGHT
 

@@ -12,15 +12,7 @@
 #
 #----------------------------------------------------------------------------
 #
-# TODO
-#
-# * Lift/share section from AppConfig about config file format.
-#
-# * Graft [Block] section back into AppConfig
-#
-#----------------------------------------------------------------------------
-#
-# $Id: File.pm,v 1.50 1998/10/21 09:23:08 abw Exp abw $
+# $Id: File.pm,v 1.52 1998/10/29 11:14:53 abw Exp abw $
 #
 #============================================================================
 
@@ -28,13 +20,13 @@ package AppConfig::File;
 
 require 5.004;
 
-use AppConfig::Const ':expand';
+use AppConfig;
 use AppConfig::State;
 
 use strict;
 use vars qw( $VERSION );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.50 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.52 $ =~ /(\d+)\.(\d+)/);
 
 
 
@@ -107,6 +99,7 @@ sub parse {
     my $warnings = 0;
     my $prefix;           # [block] defines $prefix
     my $file;
+    my $flag;
 
 
     # take a local copy of the state to avoid much hash dereferencing
@@ -200,16 +193,34 @@ sub parse {
 		# strip any quoting from the variable value
 		$value =~ s/^(['"])(.*)\1$/$2/ if defined $value;
 
+		# strip any leading '+/-' from the variable
+		$variable =~ s/^([\-+]?)//;
+		$flag = $1;
+
 		# $variable gets any $prefix 
 		$variable = $prefix . '_' . $variable
 		    if length $prefix;
 
-		# call set() to give AppConfig::State a chance to auto-
-		# create the variable if not already defined
-		$state->set($variable, 1) 
-		    unless $state->_exists($variable);
+		# if the variable doesn't exist, we call set() to give 
+		# AppConfig::State a chance to auto-create it
+		unless ($state->_exists($variable) 
+			    || $state->set($variable, 1)) {
+		    $warnings++;
+		    last FILE if $pedantic;
+		    next;
+		}	
 
 		my $nargs = $state->_argcount($variable);
+
+		# variables prefixed '-' are reset to their default values
+		if ($flag eq '-') {
+		    $state->_default($variable);
+		    next;
+		}
+		# those prefixed '+' get set to 1
+		elsif ($flag eq '+') {
+		    $value = 1 unless defined $value;
+		}
 
 		# determine if any extra arguments were expected
 		if ($nargs) {
@@ -233,6 +244,7 @@ sub parse {
 			next;
 		    }
 		}
+		# $nargs = 0
 		else {
 		    # default value to 1 unless it is explicitly defined
 		    # as '0' or "off"
@@ -330,7 +342,7 @@ sub _expand {
 	# EXPAND_VAR
 	# expand $(var) and $var as AppConfig::State variables
 	#
-	if ($expand & EXPAND_VAR) {
+	if ($expand & AppConfig::EXPAND_VAR) {
 
 	    $$value =~ s{
 		\$ (?: \((\w+)\) | (\w+) )  # $1 => $(var) | $2 => $var
@@ -351,7 +363,7 @@ sub _expand {
 		}
 		else {
 		    # raise a warning if EXPAND_WARN set
-		    if ($expand & EXPAND_WARN) {
+		    if ($expand & AppConfig::EXPAND_WARN) {
 			$state->_error("$var: no such variable");
 			$warnings++;
 		    }
@@ -373,7 +385,7 @@ sub _expand {
 	# EXPAND_UID
 	# expand ~uid as home directory (for $< if uid not specified)
 	#
-	if ($expand & EXPAND_UID) {
+	if ($expand & AppConfig::EXPAND_UID) {
 
 	    $$value =~ s{
 		~(\w+)?                    # $1 => username (optional)
@@ -405,7 +417,7 @@ sub _expand {
 		# catch-all for undefined $dir
 		unless (defined $val) {
 		    # raise a warning if EXPAND_WARN set
-		    if ($expand & EXPAND_WARN) {
+		    if ($expand & AppConfig::EXPAND_WARN) {
 			$state->_error("cannot determine home directory%s",
 			    defined $var ? " for $var" : "");
 			$warnings++;
@@ -428,7 +440,7 @@ sub _expand {
 	# EXPAND_ENV
 	# expand ${VAR} as environment variables
 	#
-	if ($expand & EXPAND_ENV) {
+	if ($expand & AppConfig::EXPAND_ENV) {
 
 	    $$value =~ s{ 
 		( \$ \{ (\w+) \} )
@@ -441,7 +453,7 @@ sub _expand {
 		}
 		else {
 		    # raise a warning if EXPAND_WARN set
-		    if ($expand & EXPAND_WARN) {
+		    if ($expand & AppConfig::EXPAND_WARN) {
 			$state->_error("$var: no such environment variable");
 			$warnings++;
 		    }
@@ -622,6 +634,13 @@ A reference to the hash is returned when the variable is requested.
 	print "$k => $aliases->{ $k }\n";
     }
 
+The '-' prefix can be used to reset a variable to its default value and
+the '+' prefix can be used to set it to 1
+
+    -verbose
+    +debug
+
+Variable, environment variable and tilde (home directory) expansions
 Variable values may contain references to other AppConfig variables, 
 environment variables and/or users' home directories.  These will be 
 expanded depending on the EXPAND value for each variable or the GLOBAL
@@ -660,7 +679,7 @@ Web Technology Group, Canon Research Centre Europe Ltd.
 
 =head1 REVISION
 
-$Revision: 1.50 $
+$Revision: 1.52 $
 
 =head1 COPYRIGHT
 

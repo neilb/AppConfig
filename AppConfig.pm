@@ -12,7 +12,7 @@
 #
 #----------------------------------------------------------------------------
 #
-# $Id: AppConfig.pm,v 1.50 1998/10/21 09:28:15 abw Exp abw $
+# $Id: AppConfig.pm,v 1.52 1998/10/29 11:44:23 abw Exp abw $
 #
 #============================================================================
 
@@ -23,7 +23,7 @@ require 5.004;
 use strict;
 use vars qw( $VERSION $AUTOLOAD @ISA @EXPORT_OK %EXPORT_TAGS );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.50 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.52 $ =~ /(\d+)\.(\d+)/);
 @ISA     = qw(Exporter);
 
 
@@ -287,6 +287,12 @@ by its configuration when defined.
     book  camel = Programming Perl
     book  llama = Learning Perl
 
+The '-' prefix can be used to reset a variable to its default value and
+the '+' prefix can be used to set it to 1
+
+    -verbose
+    +debug
+
 Variable, environment variable and tilde (home directory) expansions
 can be applied (selectively, if necessary) to the values read from 
 configuration files:
@@ -322,11 +328,18 @@ processing by delegation to Johan Vroman's Getopt::Long module.
 AppConfig requires Perl 5.004 or later.  
 
 The AppConfig::Getopt module uses Getopt::Long for advanced command-line
-option processing and requires version 2.93 or later.  There is also a
+option processing and requires version 2.17 or later.  There is also a
 simple internal module (AppConfig::Args) for command line parsing that
 does not have the flexibility of AppConfig::Getopt but is smaller and
 incurs less overhead.  The Getopt::Long module is not required when this is
-used.
+used.  The Makefile.PL specifies Getopt::Long version 2.17 as a 
+pre-requisite.  If you wish to use AppConfig without Getopt::Long then 
+comment out the following line in the Makefile.PL:
+
+    #    'PREREQ_PM'      => { 'Getopt::Long' => 2.17 },
+
+No action is necessary if you already have Getopt::Long 2.17 or later 
+installed.  Getopt::Long is available from any CPAN site (see below).
 
 All AppConfig::* and other modules (e.g. Getopt::Long) are dynamically 
 loaded by the AppConfig module as and when required.
@@ -484,7 +497,7 @@ AppConfig::State object:
     $config->set('bar', 200);
     $config->define('baz');
     $config->baz(300);
-    
+
 =head2 DEFINING VARIABLES
 
 The C<define()> method (delegated to AppConfig::State) is used to 
@@ -563,7 +576,9 @@ accessed via hash reference.
 =item ARGS 
 
 Used to provide an argument specification string to pass to Getopt::Long 
-via AppConfig::Getopt.  E.g. "=i", ":s", "=s@".
+via AppConfig::Getopt.  E.g. "=i", ":s", "=s@".  This can also be used to 
+implicitly set the ARGCOUNT value (C</^!/> = ARGCOUNT_NONE, C</@/> = 
+ARGCOUNT_LIST, C</%/ = ARGCOUNT_HASH, C</[=:].*/> = ARGCOUNT_ONE)
 
 =item EXPAND
 
@@ -585,6 +600,72 @@ Code reference to be called whenever variable value changes.
 
 =back
 
+=head2 COMPACT FORMAT DEFINITION
+
+Variables can be specified using a compact format.  This is identical to 
+the specification format of Getopt::Long and is of the form:
+
+    "name|alias|aliasE<lt>argopts<gt>"
+
+The first element indicates the variable name and subsequent ALIAS 
+values may be added, each separated by a vertical bar '|'.
+
+The E<lt>argopts<gt> element indicates the ARGCOUNT value and may be one of 
+the following;
+
+    !                  ARGCOUNT_NONE
+    =s                 ARGCOUNT_ONE
+    =s@                ARGCOUNT_LIST
+    =s%                ARGCOUNT_HASH
+
+The "=s" element 
+
+Additional constructs supported by Getopt::Long may be specified instead
+of the "=s" element (e.g. "=f").  The entire E<lt>argoptsE<gt> element 
+is stored in the ARGS parameter for the variable and is passed intact to 
+Getopt::Long when the getopt() method is called.  
+
+The following examples demonstrate use of the comapct format, with their
+equivalent full specifications:
+
+    $config->define("foo|bar|baz!");
+
+    $config->define(
+	    "foo" => { 
+		ALIAS    => "bar|baz", 
+		ARGCOUNT => ARGCOUNT_NONE,
+	    });
+
+    $config->define("name=s");
+
+    $config->define(
+	    "name" => { 
+		ARGCOUNT => ARGCOUNT_ONE,
+	    });
+
+    $config->define("file|filelist|f=s@");
+
+    $config->define(
+	    "file" => { 
+		ALIAS    => "filelist|f", 
+		ARGCOUNT => ARGCOUNT_LIST,
+	    });
+
+
+    $config->define("user|u=s%");
+
+    $config->define(
+	    "user" => { 
+		ALIAS    => "f", 
+		ARGCOUNT => ARGCOUNT_HASH,
+	    });
+
+Additional configuration options may be specified by hash reference, as per 
+normal.  The compact definition format will override any configuration 
+values provided for ARGS and ARGCOUNT.
+
+    $config->define("file|filelist|f=s@", { VALIDATE = \&check_file() } );
+
 =head2 READING AND MODIFYING VARIABLE VALUES
 
 AppConfig defines two methods (via AppConfig::State) to manipulate variable 
@@ -601,6 +682,40 @@ the method name is the same as the variable name.  i.e.
 is equivalent to 
 
     $config->verbose(1); 
+
+Note that AppConfig defines the following methods:
+
+    new();
+    file();
+    args();
+    getopt();
+
+And also, through delegation to AppConfig::State:
+
+    define()
+    get()
+    set()
+    varlist()
+
+If you define a variable with one of the above names, you will not be able
+to access it directly as an object method.  i.e.
+
+    $config->file();
+
+This will call the file() method, instead of returning the value of the 
+'file' variable.  You can work around this by explicitly calling get() and 
+set() on a variable whose name conflicts:
+
+    $config->get('file');
+
+or by defining a "safe" alias by which the variable can be accessed:
+
+    $config->define("file", { ALIAS => "fileopt" });
+or
+    $config->define("file|fileopt");
+
+    ...
+    $config->fileopt();
 
 Without parameters, the current value of the variable is returned.  If
 a parameter is specified, the variable is set to that value and the 
@@ -706,6 +821,13 @@ A reference to the hash is returned when the variable is requested.
 	print "$k => $aliases->{ $k }\n";
     }
 
+The '-' prefix can be used to reset a variable to its default value and
+the '+' prefix can be used to set it to 1
+
+    -verbose
+    +debug
+
+Variable, environment variable and tilde (home directory) expansions
 Variable values may contain references to other AppConfig variables, 
 environment variables and/or users' home directories.  These will be 
 expanded depending on the EXPAND value for each variable or the GLOBAL
@@ -805,8 +927,17 @@ The getopt() method provides a way to use the power and flexibility of
 the Getopt::Long module to parse command line arguments and have the 
 internal values of the AppConfig object updates automatically.
 
-The method is called as per args().  A reference to a list of arguments
-may be passed or @ARGV is used by default.
+The first (non-list reference) parameters may contain a number of 
+configuration string to pass to Getopt::Long::Configure.  A reference 
+to a list of arguments may additionally be passed or @ARGV is used by 
+default.
+
+    $config->getopt();                       # uses @ARGV
+    $config->getopt(\@myargs);
+    $config->getopt(qw(auto_abbrev debug));  # uses @ARGV
+    $config->getopt(qw(debug), \@myargs);
+
+See Getopt::Long for details of the configuartion options available.
 
 The getopt() method constructs a specification string for each internal
 variable and then initialises Getopt::Long with these values.  The
@@ -872,13 +1003,13 @@ See AppConfig::State for full details of the use of these constants.
 
 =head1 AUTHOR
 
-Andy Wardley, C<E<lt>abw@cre.canon.co.ukE<gt>>
+Andy Wardley, C<E<lt>abw@cre.canon.co.ukE<gt>>, http://www.kfs.org/~abw/
 
 Web Technology Group, Canon Research Centre Europe Ltd.
 
 =head1 REVISION
 
-$Revision: 1.50 $
+$Revision: 1.52 $
 
 =head1 COPYRIGHT
 
@@ -890,6 +1021,7 @@ under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
-AppConfig::State, AppConfig::File, AppConfig::Args, AppConfig::Getopt
+AppConfig::State, AppConfig::File, AppConfig::Args, AppConfig::Getopt,
+Getopt::Long
 
 =cut

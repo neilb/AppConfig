@@ -1,3 +1,30 @@
+This is the README file for AppConfig Version 1.52
+
+AppConfig is a bundle of Perl5 modules for reading configuration files 
+and parsing command line arguments.  This is a descendant of, and 
+supercedes the App::Config module.  Functionality is extended over the
+final version of App::Config (1.09) and includes many new features.  This
+module has been developed and in the process, renamed, as part of an 
+effort to unify the various Perl modules for parsing configuration files
+and command line arguments.
+
+AppConfig has a powerful but easy to use module for parsing configuration
+files.  It also has a simple and efficient module for parsing command line
+arguments.  For fully-featured command line parsing, a module is provided
+for interfacing AppConfig to Johan Vromans' extensive Getopt::Long module.
+Johan will continue to develop the functionality of this package and its
+features will automatically become available through AppConfig.  
+
+All of the modules and features of the AppConfig bundle are easily 
+accessible through the AppConfig.pm module.
+
+Relevant changes to the AppConfig module are documented in the Changes 
+files.
+
+The rest of this document contains information extracted from relevant 
+sections of the AppConfig.pm documentation.
+
+
 NAME
     AppConfig - Perl5 module for reading configuration files and parsing
     command line arguments.
@@ -28,6 +55,12 @@ OVERVIEW
         # multiple hash value
         book  camel = Programming Perl
         book  llama = Learning Perl
+
+    The '-' prefix can be used to reset a variable to its default value and
+    the '+' prefix can be used to set it to 1
+
+        -verbose
+        +debug
 
     Variable, environment variable and tilde (home directory) expansions can
     be applied (selectively, if necessary) to the values read from
@@ -63,11 +96,18 @@ PREREQUISITES
     AppConfig requires Perl 5.004 or later.
 
     The AppConfig::Getopt module uses Getopt::Long for advanced command-line
-    option processing and requires version 2.93 or later. There is also a
+    option processing and requires version 2.17 or later. There is also a
     simple internal module (AppConfig::Args) for command line parsing that
     does not have the flexibility of AppConfig::Getopt but is smaller and
     incurs less overhead. The Getopt::Long module is not required when this
-    is used.
+    is used. The Makefile.PL specifies Getopt::Long version 2.17 as a pre-
+    requisite. If you wish to use AppConfig without Getopt::Long then
+    comment out the following line in the Makefile.PL:
+
+        #    'PREREQ_PM'      => { 'Getopt::Long' => 2.17 },
+
+    No action is necessary if you already have Getopt::Long 2.17 or later
+    installed. Getopt::Long is available from any CPAN site (see below).
 
     All AppConfig::* and other modules (e.g. Getopt::Long) are dynamically
     loaded by the AppConfig module as and when required.
@@ -132,12 +172,12 @@ OBTAINING AND INSTALLING THE AppConfig MODULE BUNDLE
     AppConfig modules.
 
 AUTHOR
-    Andy Wardley, `<abw@cre.canon.co.uk>'
+    Andy Wardley, `<abw@cre.canon.co.uk>', http://www.kfs.org/~abw/
 
     Web Technology Group, Canon Research Centre Europe Ltd.
 
 REVISION
-    $Revision: 0.6 $
+    $Revision: 1.52 $
 
 COPYRIGHT
     Copyright (C) 1998 Canon Research Centre Europe Ltd. All Rights
@@ -148,4 +188,5 @@ COPYRIGHT
 
 SEE ALSO
     AppConfig::State, AppConfig::File, AppConfig::Args, AppConfig::Getopt
+    Getopt::Long
 

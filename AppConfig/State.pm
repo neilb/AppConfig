@@ -16,12 +16,6 @@
 #
 # TODO
 #
-# * define() should accept a variable name parameter of the GetOpt::Long
-#   form: e.g. "foo|bar|baz=i@" and extract the relevant configuration 
-#   information from it.
-#
-# * Fix ARGS.
-#
 # * Perhaps allow a callback to be installed which is called *instead* of 
 #   the get() and set() methods (or rather, is called by them).
 #
@@ -38,7 +32,7 @@
 #
 #----------------------------------------------------------------------------
 #
-# $Id: State.pm,v 1.50 1998/10/21 09:25:52 abw Exp abw $
+# $Id: State.pm,v 1.52 1998/10/29 11:19:59 abw Exp abw $
 #
 #============================================================================
 
@@ -50,9 +44,9 @@ use strict;
 use vars qw( $VERSION $AUTOLOAD $DEBUG );
 
 # need access to AppConfig::ARGCOUNT_*
-use AppConfig;
+use AppConfig qw(:argcount);
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.50 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.52 $ =~ /(\d+)\.(\d+)/);
 $DEBUG   = 0;
 
 # internal per-variable hashes that AUTOLOAD should provide access to
@@ -150,7 +144,7 @@ sub new {
 
 sub define {
     my $self = shift;
-    my ($var, $opt, $val, $cfg, @names);
+    my ($var, $args, $count, $opt, $val, $cfg, @names);
 
     while (@_) {
 	$var = shift;
@@ -158,9 +152,22 @@ sub define {
 
 	# variable may be specified in compact format, 'foo|bar=i@'
 	if ($var =~ s/(.+?)([!+=:].*)/$1/) {
-	    $cfg->{ ARGS } = length $2 ? $2 : 0;
 
-	    # TODO: intuit ARGCOUNT from ARGS
+	    # anything coming after the name|alias list is the ARGS
+	    $cfg->{ ARGS } = $2
+		if length $2;
+	}
+
+	# examine any ARGS option
+	if (defined ($args = $cfg->{ ARGS })) {
+	    ARGGCOUNT: {
+		$count = ARGCOUNT_NONE, last if $args =~ /^!/;
+		$count = ARGCOUNT_LIST, last if $args =~ /@/;
+		$count = ARGCOUNT_HASH, last if $args =~ /%/;
+		$count = ARGCOUNT_ONE;
+	    }
+
+	    $cfg->{ ARGCOUNT } = $count;
 	}
 
 	# split aliases out
@@ -286,6 +293,7 @@ sub get {
 
     # return variable value, possibly negated if the name was "no<var>"
     $value = $self->{ VARIABLE }->{ $variable };
+
     return $negate ? !$value : $value;
 }
 
@@ -634,7 +642,11 @@ sub _default {
 	my $argcount = $self->{ ARGCOUNT }->{ $variable };
 	$argcount = AppConfig::ARGCOUNT_ONE unless defined $argcount;
 
-	if ($argcount == AppConfig::ARGCOUNT_LIST) {
+	if ($argcount == AppConfig::ARGCOUNT_NONE) {
+	    return $self->{ VARIABLE }->{ $variable } 
+		    = $self->{ DEFAULT }->{ $variable } || 0;
+	}
+	elsif ($argcount == AppConfig::ARGCOUNT_LIST) {
 	    return $self->{ VARIABLE }->{ $variable } = [ ];
 	}
 	elsif ($argcount == AppConfig::ARGCOUNT_HASH) {
@@ -1145,7 +1157,7 @@ The ARGCOUNT option specifies the number of arguments that should be
 supplied for this variable.  By default, no additional arguments are 
 expected for variables (ARGCOUNT_NONE).
 
-The ARGCOUNT_* constants can be imported from the AppConfig::Const module:
+The ARGCOUNT_* constants can be imported from the AppConfig module:
 
     use AppConfig ':argcount';
 
@@ -1205,17 +1217,17 @@ The EXPAND option specifies how the AppConfig::File processor should
 expand embedded variables in the configuration file values it reads.
 By default, EXPAND is turned off (EXPAND_NONE) and no expansion is made.  
 
-The EXPAND_* constants can be imported from the AppConfig::Const module:
+The EXPAND_* constants can be imported from the AppConfig module:
 
-    use AppConfig::Const ':expand';
+    use AppConfig ':expand';
 
     $state->define('foo', { EXPAND => EXPAND_VAR });
 
-or can be accessed directly from the AppConfig::Const package:
+or can be accessed directly from the AppConfig package:
 
-    use AppConfig::Const;
+    use AppConfig;
 
-    $state->define('foo', { EXPAND => AppConfig::Const::EXPAND_VAR });
+    $state->define('foo', { EXPAND => AppConfig::EXPAND_VAR });
 
 The following values for EXPAND may be specified.  Multiple values should
 be combined with vertical bars , '|', e.g. C<EXPAND_UID | EXPAND_VAR>).
@@ -1440,7 +1452,7 @@ Web Technology Group, Canon Research Centre Europe Ltd.
 
 =head1 REVISION
 
-$Revision: 1.50 $
+$Revision: 1.52 $
 
 =head1 COPYRIGHT
 

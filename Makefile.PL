@@ -4,14 +4,22 @@ WriteMakefile(
     'NAME'	     => 'AppConfig',
     'VERSION_FROM'   => 'AppConfig.pm', # finds $VERSION
     'PMLIBDIRS'      => [ 'AppConfig' ],
+    'PREREQ_PM'      => { 'Getopt::Long' => 2.17 },
     'MAN3PODS'       => { 
-	# We must explicitly name AppConfig.pm as a manifyable file because 
+	# We must explicitly name AppConfig.pm et al as manifyable files.
 	# MakeMaker ignores files that match  /(config|setup).*\.pm/i;
-	'AppConfig.pm'  => '$(INST_MAN3DIR)/$(NAME).$(MAN3EXT)' 
+	'AppConfig.pm'        => '$(INST_MAN3DIR)/AppConfig.$(MAN3EXT)',
+	'AppConfig/Args.pm'   => '$(INST_MAN3DIR)/AppConfig::Args.$(MAN3EXT)',
+	'AppConfig/File.pm'   => '$(INST_MAN3DIR)/AppConfig::File.$(MAN3EXT)',
+	'AppConfig/Getopt.pm' => '$(INST_MAN3DIR)/AppConfig::Getopt.$(MAN3EXT)',
+	'AppConfig/State.pm'  => '$(INST_MAN3DIR)/AppConfig::State.$(MAN3EXT)',
+	'AppConfig/Sys.pm'    => '$(INST_MAN3DIR)/AppConfig::Sys.$(MAN3EXT)',
     },
     'dist'           => { 
 	'COMPRESS'   => 'gzip', 
 	'SUFFIX'     => 'gz',
-	'PREOP'      => 'pod2text docs/README.pod > README',
+	'PREOP'      => 'cp docs/header README; \
+	                 pod2text docs/README.pod >> README',
     },
 );
+    
