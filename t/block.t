@@ -16,33 +16,14 @@
 
 use strict;
 use vars qw($loaded);
-$^W = 1;
-
-BEGIN { 
-    $| = 1; 
-    print "1..8\n"; 
-}
-
-END {
-    ok(0) unless $loaded;
-}
-
-my $ok_count = 1;
-sub ok {
-    shift or print "not ";
-    print "ok $ok_count\n";
-    ++$ok_count;
-}
-
 use AppConfig qw(:expand :argcount);
 use AppConfig::File;
-$loaded = 1;
-ok(1);
+use Test::More tests => 7;
+$^W = 1;
 
 
 #------------------------------------------------------------------------
 # create new AppConfig::State and AppConfig::File objects
-#
 
 my $state = AppConfig::State->new({
 	    GLOBAL => { ARGCOUNT => ARGCOUNT_ONE },
@@ -72,8 +53,9 @@ ok( $state->foo() eq 'This is foo' );
 ok( $state->bar() eq 'This is bar' );
 
 #7 - #8: test [dir] block variables got set correctly
-ok( $state->dir_home() eq  $ENV{ HOME }                   );
-ok( $state->dir_html() eq ($ENV{ HOME } . '/public_html') );
+my $env_home = defined $ENV{ HOME } ? $ENV{ HOME } : '';
+ok( $state->dir_home() eq  $env_home                   );
+ok( $state->dir_html() eq ($env_home . '/public_html') );
 
 
 

@@ -25,7 +25,7 @@
 use strict;
 use vars qw($loaded);
 use lib qw( ../lib ./lib );
-use Test::More tests => 38;
+use Test::More tests => 43;
 use warnings;
 
 use AppConfig qw(:expand :argcount);
@@ -38,7 +38,7 @@ ok(1);
 #------------------------------------------------------------------------
 
 my $state = AppConfig::State->new({
-	    CREATE   => '^define_',
+	    CREATE   => '^(?:define|here)_',
 	    GLOBAL => { 
 		EXPAND   => EXPAND_ALL,
 		ARGCOUNT => ARGCOUNT_ONE,
@@ -71,6 +71,12 @@ my $state = AppConfig::State->new({
 	    ARGCOUNT => ARGCOUNT_LIST,
 	},
 	'name'  => {
+	    ARGCOUNT => ARGCOUNT_HASH,
+	},
+	'here_empty' => {
+	    ARGCOUNT => ARGCOUNT_NONE,
+	},
+	'here_hash' => {
 	    ARGCOUNT => ARGCOUNT_HASH,
 	},
     );
@@ -178,6 +184,21 @@ is( $state->define_chaz(), '/$chez/#chaz', 'chaz defined' );
 is( $state->define_choz(), 'foo#bar', 'choz defined' );
 is( $state->define_chuz(), '^#', 'chuz defined' );
 
+#39 - #42: test here-doc
+ok( ! $state->here_empty(),    'empty here-doc');
+is( $state->here_linebreaks(), <<HERE, 'line breaks');
+
+ white spaces are preserved in here-doc, except the last linebreak.
+HERE
+is( $state->here_quote(), '<<NOT_A_HERE_DOC_if_in_quotes', 'heredoc in quotes');
+is( $state->here_eof(), "parse() reads to eof if the boundary string is absent.\n", 'heredoc with EOF');
+is_deeply( $state->here_hash(), {
+	'key1' => 'value 1',
+	'key2' => 'value 2',
+	'key3' => "multi-line\nvalue 3",
+	'"key 4"' => "<<AA\n  recursive here-doc not supported.\nAA",
+}, 'hash with here-doc values');
+
 
 #========================================================================
 # the rest of the file comprises the sample configuration information
@@ -223,3 +244,34 @@ chez = /chez/$define_user
 chaz = /\$chez/\#chaz  # this is also a comment
 choz = foo#bar    # this is a comment, but the '# bar' part wasn't 
 chuz = ^#         # so is this, nor was that
+
+[here]
+empty = <<BAR
+BAR
+linebreaks =<<'BAR'
+
+ white spaces are preserved in here-doc, except the last linebreak.
+
+BAR
+quote ='<<NOT_A_HERE_DOC_if_in_quotes'
+
+hash = key1 =<<---
+value 1
+---
+hash = key2= "value 2"
+
+# Putting hash keys in here doc is ugly, not recommended, but supported
+hash = <<---
+key3 = multi-line
+value 3
+---
+
+hash = <<===
+"key 4" = <<AA
+  recursive here-doc not supported.
+AA
+===
+
+eof = <<---
+parse() reads to eof if the boundary string is absent.
+

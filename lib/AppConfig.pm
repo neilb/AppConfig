@@ -10,7 +10,7 @@
 # Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 #
-# $Id: AppConfig.pm,v 1.4 2003/04/29 09:44:51 abw Exp $
+# $Id: AppConfig.pm,v 1.7 2004/02/04 10:28:28 abw Exp $
 #
 #============================================================================
 
@@ -25,7 +25,7 @@ use base qw( Exporter );
 
 ## This is the main version number for AppConfig
 ## It is extracted by ExtUtils::MakeMaker and inserted in various places.
-$VERSION = '1.55';
+$VERSION = '1.56';
 
 # variable expansion constants
 use constant EXPAND_NONE    => 0;
@@ -67,7 +67,7 @@ sub new {
     require AppConfig::State;
 
     my $self = {
-	STATE => AppConfig::State->new(@_)
+        STATE => AppConfig::State->new(@_)
     };
 
     bless $self, $class;
@@ -211,7 +211,7 @@ AppConfig - Perl5 module for reading configuration files and parsing command lin
 
     # create/define combined
     my $config = AppConfig->new(\%cfg, 
-	    $varname => \%varopts, $varname => \%varopts, ...);
+    $varname => \%varopts, $varname => \%varopts, ...);
 
     # set/get the value
     $config->set($varname, $value);
@@ -288,6 +288,19 @@ Configuration files may be arranged in blocks as per the style of Win32
     [page]
     header = $lib/header
     footer = $lib/footer
+
+You can also use Perl's "heredoc" syntax to define a large block of
+text in a configuration file.
+
+    multiline = <<FOOBAR
+    line 1
+    line 2
+    FOOBAR
+
+    paths  exe  = "${PATH}:${HOME}/.bin"
+    paths  link = <<'FOO'
+    ${LD_LIBARRAY_PATH}:${HOME}/lib
+    FOO
 
 Variables may also be set by parsing command line arguments.
 
@@ -1016,13 +1029,17 @@ See AppConfig::State for full details of the use of these constants.
 
 Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
+With contributions from Dave Viner, Ijon Tichy, Axel Gerstmair and
+many others whose names have been lost to the sands of time (reminders
+welcome).
+
 =head1 REVISION
 
-Revision $Revision: 1.4 $ distributed as part of AppConfig 1.55.
+Revision $Revision: 1.7 $ distributed as part of AppConfig 1.56.
 
 =head1 COPYRIGHT
 
-Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+Copyright (C) 1997-2004 Andy Wardley.  All Rights Reserved.
 
 Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 

@@ -10,7 +10,7 @@
 # Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 #
-# $Id: Sys.pm,v 1.60 2003/04/29 10:43:31 abw Exp $
+# $Id: Sys.pm,v 1.61 2004/02/04 10:11:23 abw Exp $
 #
 #============================================================================
 
@@ -19,24 +19,41 @@ package AppConfig::Sys;
 require 5.004;
 use strict;
 use vars qw( $VERSION $AUTOLOAD $OS %CAN %METHOD);
+use POSIX qw( getpwnam getpwuid );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.60 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.61 $ =~ /(\d+)\.(\d+)/);
 
 BEGIN {
     # define the methods that may be available
-    %METHOD = (
-	'getpwnam' => sub { getpwnam(defined $_[0] ? shift : '') },
-	'getpwuid' => sub { getpwuid(defined $_[0] ? shift : $<) },
-    );
-
+    if($^O =~ m/win32/i) {
+        $METHOD{ getpwuid } = sub { 
+            return wantarray() 
+                ? ( (undef) x 7, getlogin() )
+                : getlogin(); 
+        };
+        $METHOD{ getpwnam } = sub { 
+            die("Can't getpwnam on win32"); 
+        };
+    }
+    else
+    {
+        $METHOD{ getpwuid } = sub { 
+            getpwuid( defined $_[0] ? shift : $< ); 
+        };
+        $METHOD{ getpwnam } = sub { 
+            getpwnam( defined $_[0] ? shift : '' );
+        };
+    }
+    
     # try out each METHOD to see if it's supported on this platform;
     # it's important we do this before defining AUTOLOAD which would
     # otherwise catch the unresolved call
     foreach my $method  (keys %METHOD) {
-	eval { &{ $METHOD{ $method } }() };
+        eval { &{ $METHOD{ $method } }() };
     	$CAN{ $method } = ! $@;
     }
 }
+
 
 
 #------------------------------------------------------------------------
@@ -52,8 +69,8 @@ sub new {
     my $class = shift;
     
     my $self = {
-	METHOD => \%METHOD,
-	CAN    => \%CAN,
+        METHOD => \%METHOD,
+        CAN    => \%CAN,
     };
 
     bless $self, $class;
@@ -86,18 +103,23 @@ sub AUTOLOAD {
 
     # can_method()
     if ($method =~ s/^can_//i && exists $self->{ CAN }->{ $method }) {
-	return $self->{ CAN }->{ $method };
+        return $self->{ CAN }->{ $method };
     }
     # method() 
     elsif (exists $self->{ METHOD }->{ $method }) {
-	return &{ $self->{ METHOD }->{ $method } }(@_);
+        if ($self->{ CAN }->{ $method }) {
+            return &{ $self->{ METHOD }->{ $method } }(@_);
+        }
+        else {
+            return undef;
+        }
     } 
     # variable
     elsif (exists $self->{ uc $method }) {
-	return $self->{ uc $method };
+        return $self->{ uc $method };
     }
     else {
-	warn("AppConfig::Sys->", $method, "(): no such method or variable\n");
+        warn("AppConfig::Sys->", $method, "(): no such method or variable\n");
     }
 
     return undef;
@@ -133,27 +155,27 @@ sub _configure {
 	    $os = $Config::Config{'osname'};
 	}
     }
-    if ($os =~ /Win/i) {
-	$os = 'WINDOWS';
+    if ($os =~ /win32/i) {
+        $os = 'WINDOWS';
     } elsif ($os =~ /vms/i) {
-	$os = 'VMS';
-    } elsif ($os =~ /Mac/i) {
-	$os = 'MACINTOSH';
+        $os = 'VMS';
+    } elsif ($os =~ /mac/i) {
+        $os = 'MACINTOSH';
     } elsif ($os =~ /os2/i) {
-	$os = 'OS2';
+        $os = 'OS2';
     } else {
-	$os = 'UNIX';
+        $os = 'UNIX';
     }
 
 
     # The path separator is a slash, backslash or semicolon, depending
     # on the platform.
     my $ps = {
-	UNIX      => '/',
-	OS2       => '\\',
-	WINDOWS   => '\\',
-	MACINTOSH => ':',
-	VMS       => '\\'
+        UNIX      => '/',
+        OS2       => '\\',
+        WINDOWS   => '\\',
+        MACINTOSH => ':',
+        VMS       => '\\'
     }->{ $os };
     #
     # Thanks Lincoln!
@@ -180,8 +202,8 @@ sub _dump {
     print "      Path Separator : ", $self->{ PATHSEP }, "\n";
     print "   Available methods :\n";
     foreach my $can (keys %{ $self->{ CAN } }) {
-	printf "%20s : ", $can;
-	print  $self->{ CAN }->{ $can } ? "yes" : "no", "\n";
+        printf "%20s : ", $can;
+        print  $self->{ CAN }->{ $can } ? "yes" : "no", "\n";
     }
     print "=" x 71, "\n";
 }
@@ -213,7 +235,7 @@ AppConfig::Sys is distributed as part of the AppConfig bundle.
 
 =head1 DESCRIPTION
 
-=head2 USING THE AppConfig::State MODULE
+=head2 USING THE AppConfig::Sys MODULE
 
 To import and use the AppConfig::Sys module the following line should
 appear in your Perl script:
@@ -235,7 +257,7 @@ detection:
     $unix_sys = AppConfig::Sys->new("Unix");
 
 Alternatively, the package variable $AppConfig::Sys::OS can be set to an
-operating system name.  The valid operating system names are: Win, VMS,
+operating system name.  The valid operating system names are: Win32, VMS,
 Mac, OS2 and Unix.  They are not case-specific.
 
 =head2 AppConfig::Sys METHODS
@@ -264,11 +286,11 @@ Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
 =head1 REVISION
 
-$Revision: 1.60 $
+$Revision: 1.61 $
 
 =head1 COPYRIGHT
 
-Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+Copyright (C) 1997-2004 Andy Wardley.  All Rights Reserved.
 
 Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 

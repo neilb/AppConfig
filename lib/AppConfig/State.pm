@@ -12,7 +12,7 @@
 # Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 #
-# $Id: State.pm,v 1.60 2003/04/29 10:43:28 abw Exp $
+# $Id: State.pm,v 1.61 2004/02/04 10:11:23 abw Exp $
 #
 #----------------------------------------------------------------------------
 #
@@ -48,7 +48,7 @@ use vars qw( $VERSION $AUTOLOAD $DEBUG );
 # need access to AppConfig::ARGCOUNT_*
 use AppConfig qw(:argcount);
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.60 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.61 $ =~ /(\d+)\.(\d+)/);
 $DEBUG   = 0;
 
 # internal per-variable hashes that AUTOLOAD should provide access to
@@ -80,35 +80,35 @@ sub new {
     my $class = shift;
     
     my $self = {
-	# internal hash arrays to store variable specification information
-	VARIABLE   => { },     # variable values
-	DEFAULT    => { },     # default values
-	ALIAS      => { },     # known aliases  ALIAS => VARIABLE
-	ALIASES    => { },     # reverse alias lookup VARIABLE => ALIASES
-	ARGCOUNT   => { },     # arguments expected
-	ARGS       => { },     # specific argument pattern (AppConfig::Getopt)
-	EXPAND     => { },     # variable expansion (AppConfig::File)
-	VALIDATE   => { },     # validation regexen or functions
-	ACTION     => { },     # callback functions for when variable is set
-	GLOBAL     => { },     # default global settings for new variables
-
-	# other internal data
-	CREATE     => 0,       # auto-create variables when set
-	CASE       => 0,       # case sensitivity flag (1 = sensitive)
-	PEDANTIC   => 0,       # return immediately on parse warnings
-	EHANDLER   => undef,   # error handler (let's hope we don't need it!)
-	ERROR      => '',      # error message
+        # internal hash arrays to store variable specification information
+        VARIABLE   => { },     # variable values
+        DEFAULT    => { },     # default values
+        ALIAS      => { },     # known aliases  ALIAS => VARIABLE
+        ALIASES    => { },     # reverse alias lookup VARIABLE => ALIASES
+        ARGCOUNT   => { },     # arguments expected
+        ARGS       => { },     # specific argument pattern (AppConfig::Getopt)
+        EXPAND     => { },     # variable expansion (AppConfig::File)
+        VALIDATE   => { },     # validation regexen or functions
+        ACTION     => { },     # callback functions for when variable is set
+        GLOBAL     => { },     # default global settings for new variables
+        
+        # other internal data
+        CREATE     => 0,       # auto-create variables when set
+        CASE       => 0,       # case sensitivity flag (1 = sensitive)
+        PEDANTIC   => 0,       # return immediately on parse warnings
+        EHANDLER   => undef,   # error handler (let's hope we don't need it!)
+        ERROR      => '',      # error message
     };
 
     bless $self, $class;
 	
     # configure if first param is a config hash ref
     $self->_configure(shift)
-	if ref($_[0]) eq 'HASH';
+        if ref($_[0]) eq 'HASH';
 
     # call define(@_) to handle any variables definitions
     $self->define(@_)
-	if @_;
+        if @_;
 
     return $self;
 }
@@ -137,109 +137,108 @@ sub define {
     my ($var, $args, $count, $opt, $val, $cfg, @names);
 
     while (@_) {
-	$var = shift;
-	$cfg = ref($_[0]) eq 'HASH' ? shift : { };
+        $var = shift;
+        $cfg = ref($_[0]) eq 'HASH' ? shift : { };
 
-	# variable may be specified in compact format, 'foo|bar=i@'
-	if ($var =~ s/(.+?)([!+=:].*)/$1/) {
+        # variable may be specified in compact format, 'foo|bar=i@'
+        if ($var =~ s/(.+?)([!+=:].*)/$1/) {
 
-	    # anything coming after the name|alias list is the ARGS
-	    $cfg->{ ARGS } = $2
-		if length $2;
-	}
+            # anything coming after the name|alias list is the ARGS
+            $cfg->{ ARGS } = $2
+                if length $2;
+        }
 
-	# examine any ARGS option
-	if (defined ($args = $cfg->{ ARGS })) {
-	    ARGGCOUNT: {
-		$count = ARGCOUNT_NONE, last if $args =~ /^!/;
-		$count = ARGCOUNT_LIST, last if $args =~ /@/;
-		$count = ARGCOUNT_HASH, last if $args =~ /%/;
-		$count = ARGCOUNT_ONE;
-	    }
+        # examine any ARGS option
+        if (defined ($args = $cfg->{ ARGS })) {
+          ARGGCOUNT: {
+              $count = ARGCOUNT_NONE, last if $args =~ /^!/;
+              $count = ARGCOUNT_LIST, last if $args =~ /@/;
+              $count = ARGCOUNT_HASH, last if $args =~ /%/;
+              $count = ARGCOUNT_ONE;
+          }
+            $cfg->{ ARGCOUNT } = $count;
+        }
 
-	    $cfg->{ ARGCOUNT } = $count;
-	}
+        # split aliases out
+        @names = split(/\|/, $var);
+        $var = shift @names;
+        $cfg->{ ALIAS } = [ @names ] if @names;
 
-	# split aliases out
-	@names = split(/\|/, $var);
-	$var = shift @names;
-	$cfg->{ ALIAS } = [ @names ] if @names;
+        # variable name gets folded to lower unless CASE sensitive
+        $var = lc $var unless $self->{ CASE };
 
-    	# variable name gets folded to lower unless CASE sensitive
-	$var = lc $var unless $self->{ CASE };
+        # activate $variable (so it does 'exist()') 
+        $self->{ VARIABLE }->{ $var } = undef;
 
-	# activate $variable (so it does 'exist()') 
-	$self->{ VARIABLE }->{ $var } = undef;
+        # merge GLOBAL and variable-specific configurations
+        $cfg = { %{ $self->{ GLOBAL } }, %$cfg };
 
-	# merge GLOBAL and variable-specific configurations
-	$cfg = { %{ $self->{ GLOBAL } }, %$cfg };
-
-	# examine each variable configuration parameter
-	while (($opt, $val) = each %$cfg) {
-	    $opt = uc $opt;
-
-	    # DEFAULT, VALIDATE, EXPAND, ARGS and ARGCOUNT are stored as 
-	    # they are;
-	    $opt =~ /^DEFAULT|VALIDATE|EXPAND|ARGS|ARGCOUNT$/ && do {
-		$self->{ $opt }->{ $var } = $val;
-		next;
-	    };
-
-	    # CMDARG has been deprecated
-	    $opt eq 'CMDARG' && do {
-		$self->_error("CMDARG has been deprecated.  "
-			. "Please use an ALIAS if required.");
-		next;
-	    };
-
-	    # ACTION should be a code ref
-	    $opt eq 'ACTION' && do {
-		unless (ref($val) eq 'CODE') {
-		    $self->_error("'$opt' value is not a code reference");
-		    next;
-		};
-
-		# store code ref, forcing keyword to upper case
-		$self->{ ACTION }->{ $var } = $val;
-
-		next;
-	    };
-
-	    # ALIAS creates alias links to the variable name
-	    $opt eq 'ALIAS' && do {
-
-		# coerce $val to an array if not already so
-		$val = [ split(/\|/, $val) ]
-		    unless ref($val) eq 'ARRAY';
-   
-		# fold to lower case unless CASE sensitivity set
-		unless ($self->{ CASE }) {
-		    @$val = map { lc } @$val;
-		}
-
-		# store list of aliases...
-		$self->{ ALIASES }->{ $var } = $val;
-
-		# ...and create ALIAS => VARIABLE lookup hash entries
-		foreach my $a (@$val) {
-		    $self->{ ALIAS }->{ $a } = $var;
-		}
-
-		next;
-	    };
-
-	    # default 
-	    $self->_error("$opt is not a valid configuration item");
-	}
-
+        # examine each variable configuration parameter
+        while (($opt, $val) = each %$cfg) {
+            $opt = uc $opt;
+            
+            # DEFAULT, VALIDATE, EXPAND, ARGS and ARGCOUNT are stored as 
+            # they are;
+            $opt =~ /^DEFAULT|VALIDATE|EXPAND|ARGS|ARGCOUNT$/ && do {
+                $self->{ $opt }->{ $var } = $val;
+                next;
+            };
+            
+            # CMDARG has been deprecated
+            $opt eq 'CMDARG' && do {
+                $self->_error("CMDARG has been deprecated.  "
+                              . "Please use an ALIAS if required.");
+                next;
+            };
+            
+            # ACTION should be a code ref
+            $opt eq 'ACTION' && do {
+                unless (ref($val) eq 'CODE') {
+                    $self->_error("'$opt' value is not a code reference");
+                    next;
+                };
+                
+                # store code ref, forcing keyword to upper case
+                $self->{ ACTION }->{ $var } = $val;
+                
+                next;
+            };
+            
+            # ALIAS creates alias links to the variable name
+            $opt eq 'ALIAS' && do {
+                
+                # coerce $val to an array if not already so
+                $val = [ split(/\|/, $val) ]
+                    unless ref($val) eq 'ARRAY';
+                
+                # fold to lower case unless CASE sensitivity set
+                unless ($self->{ CASE }) {
+                    @$val = map { lc } @$val;
+                }
+                
+                # store list of aliases...
+                $self->{ ALIASES }->{ $var } = $val;
+                
+                # ...and create ALIAS => VARIABLE lookup hash entries
+                foreach my $a (@$val) {
+                    $self->{ ALIAS }->{ $a } = $var;
+                }
+                
+                next;
+            };
+            
+            # default 
+            $self->_error("$opt is not a valid configuration item");
+        }
+        
     	# set variable to default value
-	$self->_default($var);
-
-	# DEBUG: dump new variable definition
-	if ($DEBUG) {
-	    print STDERR "Variable defined:\n";
+        $self->_default($var);
+        
+        # DEBUG: dump new variable definition
+        if ($DEBUG) {
+            print STDERR "Variable defined:\n";
     	    $self->_dump_var($var);
-	}
+        }
     }
 }
 
@@ -264,8 +263,8 @@ sub get {
 
     # check the variable has been defined
     unless (exists($self->{ VARIABLE }->{ $variable })) {
-	$self->_error("$variable: no such variable");
-	return undef;
+        $self->_error("$variable: no such variable");
+        return undef;
     }
 
     # DEBUG
@@ -274,7 +273,7 @@ sub get {
 		  ? $self->{ VARIABLE }->{ $variable }
 		  : "<undef>",
 	  "\n"
-	if $DEBUG;
+          if $DEBUG;
 
     # return variable value, possibly negated if the name was "no<var>"
     $value = $self->{ VARIABLE }->{ $variable };
@@ -306,58 +305,58 @@ sub set {
 
     # check the variable exists
     if (exists($self->{ VARIABLE }->{ $variable })) {
-	# variable found, so apply any value negation
-	$value = $value ? 0 : 1 if $negate;
+        # variable found, so apply any value negation
+        $value = $value ? 0 : 1 if $negate;
     }
     else {
-	# auto-create variable if CREATE is 1 or a pattern matching 
-	# the variable name (real name, not an alias)
-	$create = $self->{ CREATE };
-	if (defined $create
-		&& ($create eq '1' || $variable =~ /$create/)) {
-	    $self->define($variable);
-
-	    print STDERR "Auto-created $variable\n" if $DEBUG;
-	}
-	else {
-	    $self->_error("$variable: no such variable");
-	    return 0;
-	}
+        # auto-create variable if CREATE is 1 or a pattern matching 
+        # the variable name (real name, not an alias)
+        $create = $self->{ CREATE };
+        if (defined $create
+            && ($create eq '1' || $variable =~ /$create/)) {
+            $self->define($variable);
+            
+            print STDERR "Auto-created $variable\n" if $DEBUG;
+        }
+        else {
+            $self->_error("$variable: no such variable");
+            return 0;
+        }
     }
-
+    
     # call the validate($variable, $value) method to perform any validation
     unless ($self->_validate($variable, $value)) {
-	$self->_error("$variable: invalid value: $value");
-	return 0;
+        $self->_error("$variable: invalid value: $value");
+        return 0;
     }
-
+    
     # DEBUG
     print STDERR "$self->set($variable, ", 
-	   defined $value
-		  ? $value
-		  : "<undef>",
-	  ")\n"
-	if $DEBUG;
-
+    defined $value
+        ? $value
+        : "<undef>",
+        ")\n"
+        if $DEBUG;
+    
 
     # set the variable value depending on its ARGCOUNT
     my $argcount = $self->{ ARGCOUNT }->{ $variable };
     $argcount = AppConfig::ARGCOUNT_ONE unless defined $argcount;
 
     if ($argcount eq AppConfig::ARGCOUNT_LIST) {
-	# push value onto the end of the list
-	push(@{ $self->{ VARIABLE }->{ $variable } }, $value);
+        # push value onto the end of the list
+        push(@{ $self->{ VARIABLE }->{ $variable } }, $value);
     }
     elsif ($argcount eq AppConfig::ARGCOUNT_HASH) {
-	# insert "<key>=<value>" data into hash 
-	my ($k, $v) = split(/\s*=\s*/, $value, 2);
-	# strip quoting
-	$v =~ s/^(['"])(.*)\1$/$2/ if defined $v;
-	$self->{ VARIABLE }->{ $variable }->{ $k } = $v;
+        # insert "<key>=<value>" data into hash 
+        my ($k, $v) = split(/\s*=\s*/, $value, 2);
+        # strip quoting
+        $v =~ s/^(['"])(.*)\1$/$2/ if defined $v;
+        $self->{ VARIABLE }->{ $variable }->{ $k } = $v;
     }
     else {
-	# set simple variable
-	$self->{ VARIABLE }->{ $variable } = $value;
+        # set simple variable
+        $self->{ VARIABLE }->{ $variable } = $value;
     }
 
 
@@ -440,27 +439,27 @@ sub AUTOLOAD {
     # method matching the attribute or flag name in lower case with 
     # a leading underscore_
     if (($attrib = $variable) =~ s/_//g) {
-	$attrib = uc $attrib;
+        $attrib = uc $attrib;
 	
-	if (exists $METHFLAGS{ $attrib }) {
-	    return $self->{ $attrib };
-	}
+        if (exists $METHFLAGS{ $attrib }) {
+            return $self->{ $attrib };
+        }
 
-	if (exists $METHVARS{ $attrib }) {
-	    # next parameter should be variable name
-	    $variable = shift;
-	    $variable = $self->_varname($variable);
-
-	    # check we've got a valid variable
+        if (exists $METHVARS{ $attrib }) {
+            # next parameter should be variable name
+            $variable = shift;
+            $variable = $self->_varname($variable);
+            
+            # check we've got a valid variable
 #	    $self->_error("$variable: no such variable or method"), 
 #		    return undef
 #		unless exists($self->{ VARIABLE }->{ $variable });
-
-	    # return attribute
-	    return $self->{ $attrib }->{ $variable };
-	}
+            
+            # return attribute
+            return $self->{ $attrib }->{ $variable };
+        }
     }
-
+    
     # set a new value if a parameter was supplied or return the old one
     return defined($_[0])
            ? $self->set($variable, shift)
@@ -489,47 +488,47 @@ sub _configure {
 
     foreach my $opt (keys %$cfg) {
 
-	# GLOBAL must be a hash ref
-	$opt =~ /^GLOBALS?$/i && do {
-	    unless (ref($cfg->{ $opt }) eq 'HASH') {
-		$self->_error("\U$opt\E parameter is not a hash ref");
+        # GLOBAL must be a hash ref
+        $opt =~ /^GLOBALS?$/i && do {
+            unless (ref($cfg->{ $opt }) eq 'HASH') {
+                $self->_error("\U$opt\E parameter is not a hash ref");
                 next;
             }
 
             # we check each option is ok to be in GLOBAL, but we don't do 
-	    # any error checking on the values they contain (but should?).
+            # any error checking on the values they contain (but should?).
             foreach my $global ( keys %{ $cfg->{ $opt } } )  {
 
-		# continue if the attribute is ok to be GLOBAL 
+                # continue if the attribute is ok to be GLOBAL 
                 next if ($global =~ /(^$global_ok$)/io);
-
+                         
                 $self->_error( "\U$global\E parameter cannot be GLOBAL");
             }
             $self->{ GLOBAL } = $cfg->{ $opt };
             next;
         };
-
+            
 	
-	# CASE, CREATE and PEDANTIC are stored as they are
-	$opt =~ /^CASE|CREATE|PEDANTIC$/i && do {
-	    $self->{ uc $opt } = $cfg->{ $opt };
-	    next;
-	};
+        # CASE, CREATE and PEDANTIC are stored as they are
+        $opt =~ /^CASE|CREATE|PEDANTIC$/i && do {
+            $self->{ uc $opt } = $cfg->{ $opt };
+            next;
+        };
 
-	# ERROR triggers $self->_ehandler()
-	$opt =~ /^ERROR$/i && do {
-	    $self->_ehandler($cfg->{ $opt });
-	    next;
-	};
+        # ERROR triggers $self->_ehandler()
+        $opt =~ /^ERROR$/i && do {
+            $self->_ehandler($cfg->{ $opt });
+            next;
+        };
 
-	# DEBUG triggers $self->_debug()
-	$opt =~ /^DEBUG$/i && do {
-	    $self->_debug($cfg->{ $opt });
-	    next;
-	};
-
-	# warn about invalid options
-	$self->_error("\U$opt\E is not a valid configuration option");
+        # DEBUG triggers $self->_debug()
+        $opt =~ /^DEBUG$/i && do {
+            $self->_debug($cfg->{ $opt });
+            next;
+        };
+            
+        # warn about invalid options
+        $self->_error("\U$opt\E is not a valid configuration option");
     }
 }
 
@@ -570,21 +569,20 @@ sub _varname {
     # if the variable doesn't exist, we can try to chop off a leading 
     # "no" and see if the remainder matches an ARGCOUNT_ZERO variable
     unless (exists($self->{ VARIABLE }->{ $variable })) {
-
-	# see if the variable is specified as "no<var>"
-	if ($variable =~ /^no(.*)/) {
-	    # see if the real variable (minus "no") exists and it
-	    # has an ARGOUNT of ARGCOUNT_NONE (or no ARGCOUNT at all)
-	    my $novar = $self->_varname($1);
-	    if (exists($self->{ VARIABLE }->{ $novar })
-		    && ! $self->{ ARGCOUNT }->{ $novar }) {
-		# set variable name and negate value 
-		$variable = $novar;
-		$$negated = ! $$negated if defined $negated;
-	    }
-	}
+        # see if the variable is specified as "no<var>"
+        if ($variable =~ /^no(.*)/) {
+            # see if the real variable (minus "no") exists and it
+            # has an ARGOUNT of ARGCOUNT_NONE (or no ARGCOUNT at all)
+            my $novar = $self->_varname($1);
+            if (exists($self->{ VARIABLE }->{ $novar })
+                && ! $self->{ ARGCOUNT }->{ $novar }) {
+                # set variable name and negate value 
+                $variable = $novar;
+                $$negated = ! $$negated if defined $negated;
+            }
+        }
     }
-   
+    
     # return the variable name
     $variable;
 }
@@ -606,35 +604,34 @@ sub _default {
 
     # check the variable exists
     if (exists($self->{ VARIABLE }->{ $variable })) {
-
-	# set variable value to the default scalar, an empty list or empty
-	# hash array, depending on its ARGCOUNT value
-	my $argcount = $self->{ ARGCOUNT }->{ $variable };
-	$argcount = AppConfig::ARGCOUNT_ONE unless defined $argcount;
-
-	if ($argcount == AppConfig::ARGCOUNT_NONE) {
-	    return $self->{ VARIABLE }->{ $variable } 
+        # set variable value to the default scalar, an empty list or empty
+        # hash array, depending on its ARGCOUNT value
+        my $argcount = $self->{ ARGCOUNT }->{ $variable };
+        $argcount = AppConfig::ARGCOUNT_ONE unless defined $argcount;
+        
+        if ($argcount == AppConfig::ARGCOUNT_NONE) {
+            return $self->{ VARIABLE }->{ $variable } 
 		    = $self->{ DEFAULT }->{ $variable } || 0;
-	}
-	elsif ($argcount == AppConfig::ARGCOUNT_LIST) {
+        }
+        elsif ($argcount == AppConfig::ARGCOUNT_LIST) {
             my $deflist = $self->{ DEFAULT }->{ $variable };
             return $self->{ VARIABLE }->{ $variable } = 
                 [ ref $deflist eq 'ARRAY' ? @$deflist : ( ) ];
-
-	}
-	elsif ($argcount == AppConfig::ARGCOUNT_HASH) {
+            
+        }
+        elsif ($argcount == AppConfig::ARGCOUNT_HASH) {
             my $defhash = $self->{ DEFAULT }->{ $variable };
             return $self->{ VARIABLE }->{ $variable } = 
-                { ref $defhash eq 'HASH' ? %$defhash : () };
-	}
-	else {
-	    return $self->{ VARIABLE }->{ $variable } 
+            { ref $defhash eq 'HASH' ? %$defhash : () };
+        }
+        else {
+            return $self->{ VARIABLE }->{ $variable } 
 		    = $self->{ DEFAULT }->{ $variable };
-	}
+        }
     }
     else {
-	$self->_error("$variable: no such variable");
-	return 0;
+        $self->_error("$variable: no such variable");
+        return 0;
     }
 }
 
@@ -695,8 +692,8 @@ sub _validate {
 
     # non-ref (i.e. scalar)
     ref($validator) || do {
-	# not a ref - assume it's a regex
-	return $value =~ /$validator/;
+        # not a ref - assume it's a regex
+        return $value =~ /$validator/;
     };
     
     # validation failed
@@ -720,10 +717,10 @@ sub _error {
 
     # user defined error handler?
     if (ref($self->{ EHANDLER }) eq 'CODE') {
-	&{ $self->{ EHANDLER } }($format, @_);
+        &{ $self->{ EHANDLER } }($format, @_);
     }
     else {
-	warn(sprintf("$format\n", @_));
+        warn(sprintf("$format\n", @_));
     }
 }
 
@@ -753,18 +750,18 @@ sub _ehandler {
 
     # update internal reference if a new handler vas provide
     if (defined $handler) {
-	# check this is a code reference
-	if (ref($handler) eq 'CODE') {
-	    $self->{ EHANDLER } = $handler;
-
-	    # DEBUG
-	    print STDERR "installed new ERROR handler: $handler\n" if $DEBUG;
-	}
-	else {
-	    $self->_error("ERROR handler parameter is not a code ref");
-	}
+        # check this is a code reference
+        if (ref($handler) eq 'CODE') {
+            $self->{ EHANDLER } = $handler;
+            
+            # DEBUG
+            print STDERR "installed new ERROR handler: $handler\n" if $DEBUG;
+        }
+        else {
+            $self->_error("ERROR handler parameter is not a code ref");
+        }
     }
-
+   
     return $previous;
 }
 
@@ -816,7 +813,7 @@ sub _dump_var {
     }
     else {
     	print STDERR "$real  ('$var' is an alias)\n";
-	$var = $real;
+        $var = $real;
     }
 
     # for some bizarre reason, the variable VALUE is stored in VARIABLE
@@ -837,7 +834,7 @@ sub _dump_var {
     # summarise all known aliases for this variable
     print STDERR "    ALIASES      => ", 
 	    join(", ", @{ $self->{ ALIASES }->{ $var } }), "\n"
-	if defined $self->{ ALIASES }->{ $var };
+            if defined $self->{ ALIASES }->{ $var };
 } 
 
 
@@ -858,18 +855,18 @@ sub _dump {
     
     print STDERR "- " x 36, "\nINTERNAL STATE:\n";
     foreach (qw( CREATE CASE PEDANTIC EHANDLER ERROR )) {
-	printf STDERR "    %-12s => %s\n", $_, 
+        printf STDERR "    %-12s => %s\n", $_, 
 		defined($self->{ $_ }) ? $self->{ $_ } : "<undef>";
     }	    
 
     print STDERR "- " x 36, "\nVARIABLES:\n";
     foreach $var (keys %{ $self->{ VARIABLE } }) {
-	$self->_dump_var($var);
+        $self->_dump_var($var);
     }
 
     print STDERR "- " x 36, "\n", "ALIASES:\n";
     foreach $var (keys %{ $self->{ ALIAS } }) {
-	printf("    %-12s => %s\n", $var, $self->{ ALIAS }->{ $var });
+        printf("    %-12s => %s\n", $var, $self->{ ALIAS }->{ $var });
     }
     print STDERR "=" x 72, "\n";
 } 
@@ -1398,7 +1395,7 @@ Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
 =head1 REVISION
 
-$Revision: 1.60 $
+$Revision: 1.61 $
 
 =head1 COPYRIGHT
 

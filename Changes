@@ -1,4 +1,17 @@
 #========================================================================
+# Version 1.56  Date: 2004/02/04
+#========================================================================
+
+* Applied a patch from Jianhong Feng to add "heredoc" style quoting.
+
+* Applied patch from Dave Viner to AppConfig::Sys to fix problems on
+  Win32.  Thanks also to Ijon Tichy for a similar patch.
+
+* Applied patch from Axel Gerstmair to prevent undefined variable
+  warnings in block.t test.
+
+
+#========================================================================
 # Version 1.55  Date: 2003/04/29
 #========================================================================
 

@@ -16,51 +16,46 @@
 
 use strict;
 use vars qw($loaded);
+use AppConfig::Sys;
+use Test::More tests => 2;
+
 $^W = 1;
 
-BEGIN { 
-    $| = 1; 
-    print "1..3\n"; 
-}
+my $DEBUG = grep(/^--?d(ebug)?$/, @ARGV);
 
-END {
-    ok(0) unless $loaded;
-}
-
-my $ok_count = 1;
-sub ok {
-    shift or print "not ";
-    print "ok $ok_count\n";
-    ++$ok_count;
-}
-
-use AppConfig::Sys;
-$loaded = 1;
-ok(1);
-
-
-#------------------------------------------------------------------------
 # create two alternate AppConfig::Sys objects
-#
-
 my $sys    = AppConfig::Sys->new();            # auto-detect
-my $winsys = AppConfig::Sys->new('Windows');
+my $winsys = AppConfig::Sys->new('win32');
 
-ok( defined $sys    );
-ok( defined $winsys );
+ok( defined $sys, 'created system object' );
+ok( defined $winsys, 'created windows object' );
 
-$sys->_dump;
-$winsys->_dump();
+$sys->_dump if $DEBUG;
+$winsys->_dump() if $DEBUG;
 
-foreach my $s ($sys, $winsys) {
-    print "- " x 36, "\n";
-    print "          os: ", $s->os, "\n";
-    print "     pathsep: ", $s->pathsep, "\n";
-    print "can_getpwuid: ", $s->can_getpwuid(), "\n";
-    print "    getpwuid: ", $s->getpwuid($<), "\n";
-    print "    getpwuid: ", $s->getpwuid(), "\n";
-    print "can_getpwnam: ", $s->can_getpwnam(), "\n";
-    print "    getpwnam: ", $s->getpwnam('abw'), "\n";
-    print "    getpwnam: ", $s->getpwnam(), "\n";
+
+if ($DEBUG) {
+    foreach my $s ($sys, $winsys) {
+        print "- " x 36, "\n";
+        print "          os: ", $s->os, "\n";
+        print "     pathsep: ", $s->pathsep, "\n";
+        print "can_getpwuid: ", $s->can_getpwuid(), "\n";
+        
+        if($s->can_getpwuid()) {
+            print "    getpwuid: ", scalar $s->getpwuid($<), "\n";
+            print "    getpwuid: ", scalar $s->getpwuid(), "\n";
+        }
+        else {
+            print "    getpwuid not available on this platform.\n";
+        }
+        print "can_getpwnam: ", $s->can_getpwnam(), "\n";
+        
+        if($s->can_getpwnam()) {
+            print "    getpwnam: ", $s->getpwnam('abw'), "\n";
+            print "    getpwnam: ", $s->getpwnam(), "\n";
+        }
+        else {
+            print "    getpwnam not available on this platform.\n";
+        }
+    }
 }
-

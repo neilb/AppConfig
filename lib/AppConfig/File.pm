@@ -10,7 +10,7 @@
 # Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 #
-# $Id: File.pm,v 1.60 2003/04/29 10:43:16 abw Exp $
+# $Id: File.pm,v 1.62 2004/02/04 10:28:28 abw Exp $
 #
 #============================================================================
 
@@ -22,7 +22,7 @@ use AppConfig::State;
 use strict;
 use vars qw( $VERSION );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.60 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.62 $ =~ /(\d+)\.(\d+)/);
 
 
 #------------------------------------------------------------------------
@@ -41,9 +41,9 @@ sub new {
     my $state = shift;
     
     my $self = {
-	STATE    => $state,                # AppConfig::State ref
-	DEBUG    => $state->_debug(),      # store local copy of debug 
-	PEDANTIC => $state->_pedantic,     # and pedantic flags
+        STATE    => $state,                # AppConfig::State ref
+        DEBUG    => $state->_debug(),      # store local copy of debug 
+        PEDANTIC => $state->_pedantic,     # and pedantic flags
     };
 
     bless $self, $class;
@@ -180,8 +180,21 @@ sub parse {
 	    if (/^([^\s=]+)(?:(?:(?:\s*=\s*)|\s+)(.*))?/) {
 		my ($variable, $value) = ($1, $2);
 
-		# strip any quoting from the variable value
-		$value =~ s/^(['"])(.*)\1$/$2/ if defined $value;
+		if (defined $value) {
+		    # here document
+		    if ($value =~ /^([^\s=]+\s*=)?\s*<<(['"]?)(\S+)\2$/) { # '<<XX' or 'hashkey =<<XX'
+			my $boundary = "$3\n";
+			$value = defined($1) ? $1 : '';
+			while (<$handle>) {
+			    last if $_ eq $boundary;
+			    $value .= $_;
+			};
+			$value =~ s/[\r\n]$//;
+		    } else {
+			# strip any quoting from the variable value
+			$value =~ s/^(['"])(.*)\1$/$2/;
+		    };
+		};
 
 		# strip any leading '+/-' from the variable
 		$variable =~ s/^([\-+]?)//;
@@ -632,6 +645,30 @@ A reference to the hash is returned when the variable is requested.
 	print "$k => $aliases->{ $k }\n";
     }
 
+A large chunk of text can be defined using Perl's "heredoc" quoting
+style.
+
+   scalar = <<BOUNDARY_STRING
+   line 1
+   line 2: Space/linebreaks within a HERE document are kept.
+   line 3: The last linebreak (\n) is stripped.
+   BOUNDARY_STRING
+
+   hash   key1 = <<'FOO'
+     * Quotes (['"]) around the boundary string are simply ignored.
+     * Whether the variables in HERE document are expanded depends on
+       the EXPAND option of the variable or global setting.
+   FOO
+
+   hash = key2 = <<"_bar_"
+   Text within HERE document are kept as is.
+   # comments are treated as a normal text.
+   The same applies to line continuation. \
+   _bar_
+   
+Note that you cannot use HERE document as a key in a hash or a name 
+of a variable.
+
 The '-' prefix can be used to reset a variable to its default value and
 the '+' prefix can be used to set it to 1
 
@@ -675,7 +712,7 @@ Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
 =head1 REVISION
 
-$Revision: 1.60 $
+$Revision: 1.62 $
 
 =head1 COPYRIGHT
 
