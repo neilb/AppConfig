@@ -1,6 +1,43 @@
-========================================================================
-Version 1.52  Date: 1998/10/29 11:44:23  Author: abw
-------------------------------------------------------------------------
+#========================================================================
+# Version 1.54  Date: 2003/04/29
+#========================================================================
+
+* Added POSIX style '=value' suffixes to --parameters.  Thus '--foo=bar'
+  is now equivalent to '-foo bar'.
+
+* Added AppConfig::CGI module to parse CGI script parameters.
+
+* Added cgi() delegate method to AppConfig to instantiate and call
+  AppConfig::CGI.  
+
+* Added CGI documentation and cleaned up copious typos, grammos and
+  thinkos.
+
+* Applied documentation patches from Tim Mooney.
+
+* Fixed missing '>' tyop which caused POD to complain.  Thanks to 
+  David Cantrell and many others for reporting it.
+
+* Applied patch from Steven McDowall to provide default options
+  for LIST and HASH data types.
+
+* Applied patch from Robert Goff to allow '$' to be escaped (e.g. \$)
+  to suppress variable expansion in files. 
+
+* Applied patch from John Salmon to allow comments to appear anywhere
+  on a line, not just at the beginning.
+
+
+#========================================================================
+# Version 1.53  Date: not released
+#========================================================================
+
+* various changes, incorporated above.
+
+
+#========================================================================
+# Version 1.52  Date: 1998/10/29 11:44:23  Author: abw
+#========================================================================
 
 * Modified AppConfig::Getopt to work with Getopt::Long version 2.17,
   instead of the yet-to-be-released-as-of-29-Oct-1998 version 2.93
@@ -27,9 +64,9 @@ Version 1.52  Date: 1998/10/29 11:44:23  Author: abw
 * Other minor documentation fixes.
 
 
-========================================================================
-Version 1.51  Date: 1998/10/22 09:22:53  Author: abw
-------------------------------------------------------------------------
+#========================================================================
+# Version 1.51  Date: 1998/10/22 09:22:53  Author: abw
+#========================================================================
 
 * Added '+variable' (set on) and '-variable' (reset to 0 or default)
   syntax for configuration files, as suggested by Chip Salzenberg.
@@ -44,13 +81,12 @@ Version 1.51  Date: 1998/10/22 09:22:53  Author: abw
   /(config|setup).*\.pm/i;  Thanks to Alex Medina for catching that.  
 
 
-========================================================================
-Version 1.50  Date: 1998/10/21 09:28:15  Author: abw
-------------------------------------------------------------------------
+#========================================================================
+# Version 1.50  Date: 1998/10/21 09:28:15  Author: abw
+#========================================================================
 
 * Completed documentation.
 
 * First public beta release.
 
-========================================================================
 

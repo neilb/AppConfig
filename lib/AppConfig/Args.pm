@@ -5,36 +5,26 @@
 # Perl5 module to read command line argument and update the variable 
 # values in an AppConfig::State object accordingly.
 #
-# Written by Andy Wardley <abw@cre.canon.co.uk>
+# Written by Andy Wardley <abw@wardley.org>
 #
+# Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
-# All Rights Reserved.
 #
-#----------------------------------------------------------------------------
-#
-# $Id: Args.pm,v 1.50 1998/10/21 09:22:11 abw Exp $
+# $Id: Args.pm,v 1.2 2003/04/29 09:22:33 abw Exp $
 #
 #============================================================================
 
 package AppConfig::Args;
 
 require 5.004;
-
 use AppConfig::State;
-
 use strict;
 use vars qw( $VERSION );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.50 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
 
 
-
-#========================================================================
-#                      -----  PUBLIC METHODS -----
-#========================================================================
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # new($state, \@args)
 #
 # Module constructor.  The first, mandatory parameter should be a 
@@ -44,8 +34,7 @@ $VERSION = sprintf("%d.%02d", q$Revision: 1.50 $ =~ /(\d+)\.(\d+)/);
 # processing.
 #
 # Returns a reference to a newly created AppConfig::Args object.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub new {
     my $class = shift;
@@ -68,9 +57,7 @@ sub new {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # parse(\@args)
 #
 # Examines the argument list and updates the contents of the 
@@ -83,8 +70,7 @@ sub new {
 # returns 0 immediately on any parsing error.
 #
 # Returns 1 on success or 0 if one or more warnings were raised.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub parse {
     my $self = shift;
@@ -106,7 +92,13 @@ sub parse {
 	last if $arg eq '--';
 
 	# strip leading '-';
-	($variable = $arg) =~ s/^--?//g;
+	($variable = $arg) =~ s/^-(-)?//;
+
+	# test for '--' prefix and push back any '=value' item
+	if (defined $1) {
+	    ($variable, $value) = split(/=/, $variable);
+	    unshift(@$argv, $value) if defined $value;
+	}
 
 	# check the variable exists
 	if ($state->_exists($variable)) {
@@ -114,7 +106,6 @@ sub parse {
 	    # see if it expects any mandatory arguments
 	    $nargs = $state->_argcount($variable);
 	    if ($nargs) {
-
 		# check there's another arg and it's not another '-opt'
 		if(defined($argv->[0])) {
 		    $value = shift(@$argv);
@@ -236,18 +227,17 @@ AppConfig::Getopt) is highly recommended.
 
 =head1 AUTHOR
 
-Andy Wardley, C<E<lt>abw@cre.canon.co.ukE<gt>>
-
-Web Technology Group, Canon Research Centre Europe Ltd.
+Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
 =head1 REVISION
 
-$Revision: 1.50 $
+$Revision: 1.2 $
 
 =head1 COPYRIGHT
 
-Copyright (C) 1998 Canon Research Centre Europe Ltd.  
-All Rights Reserved.
+Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+
+Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 
 This module is free software; you can redistribute it and/or modify it 
 under the same terms as Perl itself.

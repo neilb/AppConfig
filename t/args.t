@@ -20,35 +20,20 @@
 #
 #========================================================================
 
+use lib qw( ../lib ./lib );
 use strict;
 use vars qw($loaded);
-$^W = 1;
-
-BEGIN { 
-    $| = 1; 
-    print "1..11\n"; 
-}
-
-END {
-    ok(0) unless $loaded;
-}
-
-my $ok_count = 1;
-sub ok {
-    shift or print "not ";
-    print "ok $ok_count\n";
-    ++$ok_count;
-}
-
+use warnings;
 use AppConfig qw(:argcount);
 use AppConfig::Args;
-$loaded = 1;
-ok(1);
+use Test::More tests => 17;
+
+ok(1, 'loaded');
 
 
 #------------------------------------------------------------------------
 # create new AppConfig::State and AppConfig::Args objects
-#
+#------------------------------------------------------------------------
 
 my $default = "<default>";
 my $anon    = "<anon>";
@@ -78,26 +63,30 @@ my $state = AppConfig::State->new({
 
 my $cfgargs = AppConfig::Args->new($state);
 
-#2 - #3: test the state and cfgargs got instantiated correctly
-ok( defined $state   );
-ok( defined $cfgargs );
+ok( defined $state, 'defined state' );
+ok( defined $cfgargs, 'defined cfgargs' );
 
 my @args = ('-v', '-u', $user, '-age', $age, $notarg);
 
-#4: process the args
-ok( $cfgargs->parse(\@args) );
+ok( $cfgargs->parse(\@args), 'parse' );
 
-#5 - #7: check variables got updated
-ok( $state->verbose() == 1     );
-ok( $state->user()    eq $user );
-ok( $state->age()     == $age  );
+is( $state->verbose(), 1, 'verbose' );
+is( $state->user(), $user, 'user' );
+is( $state->age(), $age, 'age' );
 
-#8: next arg should be $notarg
-ok( $args[0] eq $notarg );
+is( $args[0], $notarg, 'next arg' );
 
-#9 - #11: check args defaults to using @ARGV
 @ARGV = ('--age', $age * 2, $notarg);
-ok( $cfgargs->parse() );
-ok( $state->age() == ($age * 2) );
-ok( $ARGV[0] eq $notarg );
+ok( $cfgargs->parse(), 'second parse' );
+is( $state->age(), $age * 2, 'second age' );
+is( $ARGV[0], $notarg, 'second next arg' );
 
+@ARGV = ('--user=Andy_Wardley', '--age=30');
+ok( $cfgargs->parse(), 'third parse' );
+is( $state->age(), 30, 'third age' );
+is( $state->user(), 'Andy_Wardley', 'third user' );
+
+@ARGV = ('--user', 'Me Again', '--age', '34');
+ok( $cfgargs->parse(), 'fourth parse' );
+is( $state->age(), 34, 'fourth age' );
+is( $state->user(), 'Me Again', 'fourth user' );

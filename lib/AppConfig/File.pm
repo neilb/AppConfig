@@ -5,37 +5,27 @@
 # Perl5 module to read configuration files and use the contents therein 
 # to update variable values in an AppConfig::State object.
 #
-# Written by Andy Wardley <abw@cre.canon.co.uk>
+# Written by Andy Wardley <abw@wardley.org>
 #
+# Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
-# All Rights Reserved.
 #
-#----------------------------------------------------------------------------
-#
-# $Id: File.pm,v 1.52 1998/10/29 11:14:53 abw Exp abw $
+# $Id: File.pm,v 1.6 2003/04/29 10:08:35 abw Exp $
 #
 #============================================================================
 
 package AppConfig::File;
 
-require 5.004;
-
+require 5.005;
 use AppConfig;
 use AppConfig::State;
-
 use strict;
 use vars qw( $VERSION );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.52 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.6 $ =~ /(\d+)\.(\d+)/);
 
 
-
-#========================================================================
-#                      -----  PUBLIC METHODS -----
-#========================================================================
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # new($state, $file, [$file, ...])
 #
 # Module constructor.  The first, mandatory parameter should be a 
@@ -44,14 +34,12 @@ $VERSION = sprintf("%d.%02d", q$Revision: 1.52 $ =~ /(\d+)\.(\d+)/);
 # file handles for reading and are passed to parse().
 #
 # Returns a reference to a newly created AppConfig::File object.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub new {
     my $class = shift;
     my $state = shift;
     
-
     my $self = {
 	STATE    => $state,                # AppConfig::State ref
 	DEBUG    => $state->_debug(),      # store local copy of debug 
@@ -68,9 +56,7 @@ sub new {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # parse($file, [file, ...])
 #
 # Reads and parses a config file, updating the contents of the 
@@ -91,8 +77,7 @@ sub new {
 #
 # Returns undef on system error, 0 if all files were parsed but generated
 # one or more warnings, 1 if all files parsed without warnings.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub parse {
     my $self     = shift;
@@ -100,7 +85,6 @@ sub parse {
     my $prefix;           # [block] defines $prefix
     my $file;
     my $flag;
-
 
     # take a local copy of the state to avoid much hash dereferencing
     my ($state, $debug, $pedantic) = @$self{ qw( STATE DEBUG PEDANTIC ) };
@@ -166,14 +150,20 @@ sub parse {
 	while (<$handle>) {
 	    chomp;
 
+            # Throw away everything from an unescaped # to EOL
+            s/(^|\s+)#.*/$1/;
+
 	    # add next line if there is one and this is a continuation
 	    if (s/\\$// && !eof($handle)) {
 		$_ .= <$handle>;
 		redo;
 	    }
 
-	    # ignore blank lines and comments
-	    next if /^\s*$/ || /^#/;
+            # Convert \# -> #
+            s/\\#/#/g;
+
+            # ignore blank lines
+            next if /^\s*$/;
 
 	    # strip leading and trailing whitespace
 	    s/^\s+//;
@@ -288,8 +278,7 @@ sub parse {
 #                      -----  PRIVATE METHODS -----
 #========================================================================
 
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _expand(\$value, $expand, $prefix)
 #
 # The variable value string, referenced by $value, is examined and any 
@@ -308,8 +297,7 @@ sub parse {
 # Modifications are made directly into the variable referenced by $value.
 # The method returns 1 on success or 0 if any warnings (undefined 
 # variables) were encountered.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub _expand {
     my ($self, $value, $expand, $prefix) = @_;
@@ -335,7 +323,6 @@ sub _expand {
 
     print STDERR "Expansion of [$$value] " if $debug;
 
-
     EXPAND: {
 
         # 
@@ -345,10 +332,11 @@ sub _expand {
 	if ($expand & AppConfig::EXPAND_VAR) {
 
 	    $$value =~ s{
-		\$ (?: \((\w+)\) | (\w+) )  # $1 => $(var) | $2 => $var
+                (?<!\\)\$ (?: \((\w+)\) | (\w+) ) # $2 => $(var) | $3 => $var
+
 	    } {
-		# embedded variable name will be one of $1 or $2
-		$var = defined $1 ? $1 : $2;		
+		# embedded variable name will be one of $2 or $3
+		$var = defined $1 ? $1 : $2;
 
 		# expand the variable if defined
 		if ($state->_exists($var)) {
@@ -375,6 +363,8 @@ sub _expand {
 		# $val gets substituted back into the $value string
 		$val;
 	    }gex;
+
+            $$value =~ s/\\\$/\$/g;
 
 	    # bail out now if we need to
 	    last EXPAND if $warnings && $pedantic;
@@ -478,13 +468,11 @@ sub _expand {
 
 
 
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _dump()
 #
 # Dumps the contents of the Config object.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub _dump {
     my $self = shift;
@@ -573,11 +561,21 @@ See L<AppConfig::State> for more information on variable expansion.
 
 =head2 CONFIGURATION FILE FORMAT
 
-The file may contain blank lines and comments (prefixed by '#') which 
-are ignored.  Continutation lines may be marked by ending the line with 
-a '\'.
+A configuration file may contain blank lines and comments which are
+ignored.  Comments begin with a '#' as the first character on a line
+or following one or more whitespace tokens, and continue to the end of
+the line.
 
     # this is a comment
+    foo = bar               # so is this
+    url = index.html#hello  # this too, but not the '#welcome'
+
+Notice how the '#welcome' part of the URL is not treated as a comment
+because a whitespace character doesn't precede it.  
+
+Long lines can be continued onto the next line by ending the first 
+line with a '\'.
+
     callsign = alpha bravo camel delta echo foxtrot golf hipowls \
                india juliet kilo llama mike november oscar papa  \
 	       quebec romeo sierra tango umbrella victor whiskey \
@@ -673,18 +671,17 @@ file.
 
 =head1 AUTHOR
 
-Andy Wardley, C<E<lt>abw@cre.canon.co.ukE<gt>>
-
-Web Technology Group, Canon Research Centre Europe Ltd.
+Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
 =head1 REVISION
 
-$Revision: 1.52 $
+$Revision: 1.6 $
 
 =head1 COPYRIGHT
 
-Copyright (C) 1998 Canon Research Centre Europe Ltd.  
-All Rights Reserved.
+Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+
+Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 
 This module is free software; you can redistribute it and/or modify it 
 under the same terms as Perl itself.

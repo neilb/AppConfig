@@ -1,4 +1,4 @@
-#========================================================================
+ #========================================================================
 #
 # t/file.t 
 #
@@ -24,33 +24,18 @@
 
 use strict;
 use vars qw($loaded);
-$^W = 1;
-
-BEGIN { 
-    $| = 1; 
-    print "1..33\n"; 
-}
-
-END {
-    ok(0) unless $loaded;
-}
-
-my $ok_count = 1;
-sub ok {
-    shift or print "not ";
-    print "ok $ok_count\n";
-    ++$ok_count;
-}
+use lib qw( ../lib ./lib );
+use Test::More tests => 38;
+use warnings;
 
 use AppConfig qw(:expand :argcount);
 use AppConfig::File;
-$loaded = 1;
 ok(1);
 
 
 #------------------------------------------------------------------------
 # create new AppConfig::State and AppConfig::File objects
-#
+#------------------------------------------------------------------------
 
 my $state = AppConfig::State->new({
 	    CREATE   => '^define_',
@@ -97,82 +82,82 @@ my $cfgfile = AppConfig::File->new($state);
 # AppConfig::State can be turned off, AppConfig::File debugging remains on.
 # $state->_debug(0);
 
-#2 - #3: test the state and cfgfile got instantiated correctly
-ok( defined $state   );
-ok( defined $cfgfile );
+ok( defined $state, 'state defined' );
+ok( defined $cfgfile, 'cfgfile defined' );
 
-#4: read the config file (from __DATA__)
-ok( $cfgfile->parse(\*DATA) );
+ok( $cfgfile->parse(\*DATA), 'parsed' );
 
 
 #------------------------------------------------------------------------
-#5 - #nn: test variable values got set with correct expansion
-#
+# test variable values got set with correct expansion
+#------------------------------------------------------------------------
 
-#5: html has no embedded variables
+# html has no embedded variables
 ok( $state->html() eq 'public_html' );
 
-#6: cash should *not* be expanded (EXPAND_NONE) to protect '$'
+# cash should *not* be expanded (EXPAND_NONE) to protect '$'
 ok( $state->cash() eq 'I won $200!' );
 
-#7:  hdir expands variables ($html) but not uids (~)
+#  hdir expands variables ($html) but not uids (~)
 ok( $state->hdir() eq '~/public_html' );
 
-#8: see if "[~/$html]" matches "[${HOME}/$html]".  It may fail if your
+# see if "[~/$html]" matches "[${HOME}/$html]".  It may fail if your
 #   platform doesn't provide getpwuid().  See AppConfig::Sys for details.
 my ($one, $two) = 
     $state->same() =~ / \[ ( [^\]]+ ) \] \s+=>\s+ \[ ( [^\]]+ ) \]/gx;
-ok( $one = $two );
+is( $one, $two, 'one is two' );
 
-#9: test that "split" came out the same as "same"
-ok( $state->same() eq $state->split() );
+# test that "split" came out the same as "same"
+is( $state->same(), $state->split(), 'same split' );
 
-#10: test that "verbose" got set to 1 when no parameter was provided
-ok( $state->verbose() eq 1 );
+# test that "verbose" got set to 1 when no parameter was provided
+is( $state->verbose(), 1, 'verbose' );
 
-#11: test that debug got turned off by explicit (debug = 0)
-ok( ! $state->debug() );
+# test that debug got turned off by explicit (debug = 0)
+ok( ! $state->debug(), 'not debuggin' );
 
-#12 - #13: test that cruft got turned off by "nocruft"
-ok( ! $state->cruft()   );
-ok(   $state->nocruft() );
+# test that cruft got turned off by "nocruft"
+ok( ! $state->cruft(), 'not crufty' );
+ok(   $state->nocruft(), 'nocruft' );
 
-#14 - #15: test that chance got turned on by "nochance = 0"
-ok(   $state->chance()   );
-ok( ! $state->nochance() );
+# test that chance got turned on by "nochance = 0"
+ok(   $state->chance(), 'there is a chance' );
+ok( ! $state->nochance(), 'there is not no chance' );
 
-#16 - #17: test that hope got turned on by "nohope = off"
-ok(   $state->hope()   );
-ok( ! $state->nohope() );
+# test that hope got turned on by "nohope = off"
+ok(   $state->hope(), 'there is hope' );
+ok( ! $state->nohope(), 'there is not no hope'  );
 
-#18 - #20: check auto-creation of variables and variable expansion of
+# check auto-creation of variables and variable expansion of
 #          [block] variable
-ok( $state->define_user() eq 'abw'       );
-ok( $state->define_home() eq '/home/abw' );
-ok( $state->define_chez() eq '/chez/abw' );
+is( $state->define_user(), 'abw', 'user is abw');
+is( $state->define_home(), '/home/abw', 'home is /home/abw' );
+is( $state->define_chez(), '/chez/abw', 'chez is /chez/abw' );
+is( $state->define_choz(), 'foo#bar', 'choz is set' );
+is( $state->define_chuz(), '^#', 'chuz is set' );
 
 #21 - #22: test $state->varlist() without strip option
 my (%set, $expect, $got);
 %set    = $state->varlist('^define_');
-$expect = 'define_chez=/chez/abw, define_home=/home/abw, define_user=abw';
+$expect = 'define_chaz=/$chez/#chaz, define_chez=/chez/abw, define_choz=foo#bar, define_chuz=^#, define_home=/home/abw, define_user=abw';
 $got    = join(', ', map { "$_=$set{$_}" } sort keys %set);
 
-ok( scalar keys %set == 3);
-ok( $expect eq $got );
+is( scalar keys %set, 6, 'five keys' );
+is( $expect, $got, 'varlist' );
 
 #23 - #24: test $state->varlist() with strip option
 %set    = $state->varlist('^define_', 1);
-$expect = 'chez=/chez/abw, home=/home/abw, user=abw';
+$expect = 'chaz=/$chez/#chaz, chez=/chez/abw, choz=foo#bar, chuz=^#, home=/home/abw, user=abw';
 $got    = join(', ', map { "$_=$set{$_}" } sort keys %set);
 
-ok( scalar keys %set == 3);
-ok( $expect eq $got );
+is( scalar keys %set, 6, 'five stripped keys');
+is( $expect, $got, 'stripped varlist' );
 
 #25 - #27: test ARGCOUNT_LIST
 my $drink = $state->drink();
-ok( $drink->[0] eq 'coffee');
-ok( $drink->[1] eq 'beer');
-ok( $drink->[2] eq 'water');
+is( $drink->[0], 'coffee', 'coffee');
+is( $drink->[1], 'beer', 'beer');
+is( $drink->[2], 'water', 'water');
 
 #28 - #31: test ARGCOUNT_HASH
 my $name = $state->name();
@@ -186,12 +171,18 @@ ok( $name->{'mim'} eq 'Man in the Moon' );
 ok( $state->title eq "Lord of the Rings");
 ok( $state->ident eq "Keeper of the Scrolls");
 
+# test \$ and \# suppression 
+is( $state->define_chaz(), '/$chez/#chaz', 'chaz defined' );
+
+# test whitespace required before '#'
+is( $state->define_choz(), 'foo#bar', 'choz defined' );
+is( $state->define_chuz(), '^#', 'chuz defined' );
 
 
 #========================================================================
 # the rest of the file comprises the sample configuration information
 # that gets read by parse()
-#
+#========================================================================
 
 __DATA__
 # lines starting with '#' are regarded as comments and are ignored
@@ -226,10 +217,9 @@ title = "Lord of the Rings"
 ident = 'Keeper of the Scrolls'
 
 [define]
-user = abw
+user = abw     # this is a comment
 home = /home/$user
 chez = /chez/$define_user
-
-
-
-
+chaz = /\$chez/\#chaz  # this is also a comment
+choz = foo#bar    # this is a comment, but the '# bar' part wasn't 
+chuz = ^#         # so is this, nor was that

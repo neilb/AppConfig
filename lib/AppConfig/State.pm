@@ -7,14 +7,20 @@
 # about variables; their identities, options, aliases, targets, callbacks 
 # and so on.  This module is used by a number of other AppConfig::* modules.
 #
-# Written by Andy Wardley <abw@cre.canon.co.uk>
+# Written by Andy Wardley <abw@wardley.org>
 #
+# Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
-# All Rights Reserved.
+#
+# $Id: State.pm,v 1.2 2003/04/29 09:22:33 abw Exp $
 #
 #----------------------------------------------------------------------------
 #
 # TODO
+#
+# * Change varlist() to varhash() and provide another varlist() method
+#   which returns a list.  Multiple parameters passed implies a hash 
+#   slice/list grep, a single parameter should indicate a regex.
 #
 # * Perhaps allow a callback to be installed which is called *instead* of 
 #   the get() and set() methods (or rather, is called by them).
@@ -30,10 +36,6 @@
 #   command line (-v vs -V, -r vs -R, for example), but not for parsing 
 #   config files where you may wish to treat "Name", "NAME" and "name" alike.
 #
-#----------------------------------------------------------------------------
-#
-# $Id: State.pm,v 1.52 1998/10/29 11:19:59 abw Exp abw $
-#
 #============================================================================
 
 package AppConfig::State;
@@ -46,7 +48,7 @@ use vars qw( $VERSION $AUTOLOAD $DEBUG );
 # need access to AppConfig::ARGCOUNT_*
 use AppConfig qw(:argcount);
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.52 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
 $DEBUG   = 0;
 
 # internal per-variable hashes that AUTOLOAD should provide access to
@@ -61,13 +63,7 @@ my %METHFLAGS;
 my @GLOBAL_OK = qw( DEFAULT EXPAND VALIDATE ACTION ARGS ARGCOUNT );
 
 
-
-#========================================================================
-#                      -----  PUBLIC METHODS -----
-#========================================================================
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # new(\%config, @vars)
 #
 # Module constructor.  A reference to a hash array containing 
@@ -78,8 +74,7 @@ my @GLOBAL_OK = qw( DEFAULT EXPAND VALIDATE ACTION ARGS ARGCOUNT );
 # processing.
 #
 # Returns a reference to a newly created AppConfig::State object.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub new {
     my $class = shift;
@@ -93,13 +88,11 @@ sub new {
 	ARGCOUNT   => { },     # arguments expected
 	ARGS       => { },     # specific argument pattern (AppConfig::Getopt)
 	EXPAND     => { },     # variable expansion (AppConfig::File)
-    #   CMDARG     => { },     # cmd line argument pattern (deprecated)
 	VALIDATE   => { },     # validation regexen or functions
 	ACTION     => { },     # callback functions for when variable is set
 	GLOBAL     => { },     # default global settings for new variables
 
 	# other internal data
-    #	ENDOFARGS  => '--',    # marks end of cmd line args (deprecated)
 	CREATE     => 0,       # auto-create variables when set
 	CASE       => 0,       # case sensitivity flag (1 = sensitive)
 	PEDANTIC   => 0,       # return immediately on parse warnings
@@ -121,9 +114,7 @@ sub new {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # define($variable, \%cfg, [$variable, \%cfg, ...])
 #
 # Defines one or more variables.  The first parameter specifies the 
@@ -139,8 +130,7 @@ sub new {
 # format, such as "Foo|Bar=1".  
 #
 # A warning is issued (via _error()) if an invalid option is specified.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub define {
     my $self = shift;
@@ -254,24 +244,19 @@ sub define {
 }
 
 
-
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # get($variable)
 #
 # Returns the value of the variable specified, $variable.  Returns undef
 # if the variable does not exists or is undefined and send a warning
 # message to the _error() function.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub get {
     my $self     = shift;
     my $variable = shift;
     my $negate   = 0;
     my $value;
-
 
     # _varname returns variable name after aliasing and case conversion
     # $negate indicates if the name got converted from "no<var>" to "<var>"
@@ -298,9 +283,7 @@ sub get {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # set($variable, $value)
 #
 # Assigns the value, $value, to the variable specified.
@@ -308,8 +291,7 @@ sub get {
 # Returns 1 if the variable is successfully updated or 0 if the variable 
 # does not exist.  If an ACTION sub-routine exists for the variable, it 
 # will be executed and its return value passed back.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub set {
     my $self     = shift;
@@ -317,7 +299,6 @@ sub set {
     my $value    = shift;
     my $negate   = 0;
     my $create;
-    
 
     # _varname returns variable name after aliasing and case conversion
     # $negate indicates if the name got converted from "no<var>" to "<var>"
@@ -389,9 +370,7 @@ sub set {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # varlist($criteria, $filter)
 #
 # Returns a hash array of all variables and values whose real names 
@@ -400,14 +379,16 @@ sub set {
 # (variable names) will have the $criteria part removed.  This allows 
 # the caller to specify the variables from one particular [block] and
 # have the "block_" prefix removed, for example.  
-# 
-#========================================================================
+#
+# TODO: This should be changed to varhash().  varlist() should return a 
+# list.  Also need to consider specification by list rather than regex.
+#
+#------------------------------------------------------------------------
 
 sub varlist {
     my $self     = shift;
     my $criteria = shift;
     my $strip    = shift;
-
 
     $criteria = "" unless defined $criteria;
 
@@ -424,10 +405,8 @@ sub varlist {
     return %set;
 }
 
-
     
-#========================================================================
-#
+#------------------------------------------------------------------------
 # AUTOLOAD
 #
 # Autoload function called whenever an unresolved object method is 
@@ -442,8 +421,7 @@ sub varlist {
 # Returns the current value of the variable, taken before any new value
 # is set.  Prints a warning if the variable isn't defined (i.e. doesn't
 # exist rather than exists with an undef value) and returns undef.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub AUTOLOAD {
     my $self = shift;
@@ -495,14 +473,12 @@ sub AUTOLOAD {
 #                      -----  PRIVATE METHODS -----
 #========================================================================
 
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _configure(\%cfg)
 #
 # Sets the various configuration options using the values passed in the
 # hash array referenced by $cfg.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub _configure {
     my $self = shift;
@@ -558,9 +534,7 @@ sub _configure {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _varname($variable, \$negated)
 #
 # Variable names are treated case-sensitively or insensitively, depending 
@@ -579,8 +553,7 @@ sub _configure {
 # reference and be updated to indicate any negation activity taking place.
 #
 # The (possibly modified) variable name is returned.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub _varname {
     my $self     = shift;
@@ -617,15 +590,12 @@ sub _varname {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _default($variable)
 #
 # Sets the variable specified to the default value or undef if it doesn't
 # have a default.  The default value is returned.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub _default {
     my $self     = shift;
@@ -647,10 +617,15 @@ sub _default {
 		    = $self->{ DEFAULT }->{ $variable } || 0;
 	}
 	elsif ($argcount == AppConfig::ARGCOUNT_LIST) {
-	    return $self->{ VARIABLE }->{ $variable } = [ ];
+            my $deflist = $self->{ DEFAULT }->{ $variable };
+            return $self->{ VARIABLE }->{ $variable } = 
+                [ ref $deflist eq 'ARRAY' ? @$deflist : ( ) ];
+
 	}
 	elsif ($argcount == AppConfig::ARGCOUNT_HASH) {
-	    return $self->{ VARIABLE }->{ $variable } = { };
+            my $defhash = $self->{ DEFAULT }->{ $variable };
+            return $self->{ VARIABLE }->{ $variable } = 
+                { ref $defhash eq 'HASH' ? %$defhash : () };
 	}
 	else {
 	    return $self->{ VARIABLE }->{ $variable } 
@@ -664,14 +639,11 @@ sub _default {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _exists($variable)
 #
 # Returns 1 if the variable specified exists or 0 if not.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub _exists {
     my $self     = shift;
@@ -686,17 +658,14 @@ sub _exists {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _validate($variable, $value)
 #
 # Uses any validation rules or code defined for the variable to test if
 # the specified value is acceptable.
 #
 # Returns 1 if the value passed validation checks, 0 if not.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub _validate {
     my $self     = shift;
@@ -735,9 +704,7 @@ sub _validate {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _error($format, @params)
 #
 # Checks for the existence of a user defined error handling routine and
@@ -745,8 +712,7 @@ sub _validate {
 # is expected to handle a string format and optional parameters as per
 # printf(3C).  If no error handler is defined, the message is formatted
 # and passed to warn() which prints it to STDERR.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub _error {
     my $self   = shift;
@@ -762,9 +728,7 @@ sub _error {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _ehandler($handler)
 #
 # Allows a new error handler to be installed.  The current value of 
@@ -778,11 +742,7 @@ sub _error {
 # stored by the caller) to allow new error handlers to chain control back
 # to any user-defined handler, and also restore the original handler when 
 # done.
-#
-# This method is considered private, although other AppConfig::* modules
-# (friends) are expected to use it.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub _ehandler {
     my $self    = shift;
@@ -809,9 +769,7 @@ sub _ehandler {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _debug($debug)
 #
 # Sets the package debugging variable, $AppConfig::State::DEBUG depending 
@@ -819,11 +777,9 @@ sub _ehandler {
 # debugging off.
 #
 # May be called as an object method, $state->_debug(1), or as a package
-# function, AppConfig::State::_debug(1).
-#
-# Returns the previous value of $DEBUG, before any new value was applied.
-#
-#========================================================================
+# function, AppConfig::State::_debug(1).  Returns the previous value of 
+# $DEBUG, before any new value was applied.
+#------------------------------------------------------------------------
 
 sub _debug {
     # object reference may not be present if called as a package function
@@ -841,22 +797,17 @@ sub _debug {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _dump_var($var)
 #
 # Displays the content of the specified variable, $var.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub _dump_var {
     my $self   = shift;
     my $var    = shift;
 
-
     return unless defined $var;
-
 
     # $var may be an alias, so we resolve the real variable name
     my $real = $self->_varname($var);
@@ -890,14 +841,11 @@ sub _dump_var {
 } 
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _dump()
 #
 # Dumps the contents of the Config object and all stored variables.  
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub _dump {
     my $self = shift;
@@ -934,7 +882,7 @@ __END__
 
 =head1 NAME
 
-AppConfig::State - Perl5 module for maintaining the state of an application configuration.
+AppConfig::State - application configuration state
 
 =head1 SYNOPSIS
 
@@ -1446,18 +1394,17 @@ debugging purposes.
 
 =head1 AUTHOR
 
-Andy Wardley, C<E<lt>abw@cre.canon.co.ukE<gt>>
-
-Web Technology Group, Canon Research Centre Europe Ltd.
+Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
 =head1 REVISION
 
-$Revision: 1.52 $
+$Revision: 1.2 $
 
 =head1 COPYRIGHT
 
-Copyright (C) 1998 Canon Research Centre Europe Ltd.  
-All Rights Reserved.
+Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+
+Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 
 This module is free software; you can redistribute it and/or modify it 
 under the same terms as Perl itself.

@@ -1,4 +1,4 @@
-This is the README file for AppConfig Version 1.52
+This is the README file for AppConfig Version 1.54
 
 AppConfig is a bundle of Perl5 modules for reading configuration files 
 and parsing command line arguments.  This is a descendant of, and 
@@ -26,8 +26,8 @@ sections of the AppConfig.pm documentation.
 
 
 NAME
-    AppConfig - Perl5 module for reading configuration files and parsing
-    command line arguments.
+    AppConfig - application configuration files via command line, config
+    file, etc.
 
 OVERVIEW
     AppConfig is a Perl5 module for managing application configuration
@@ -93,24 +93,11 @@ OVERVIEW
     processing by delegation to Johan Vroman's Getopt::Long module.
 
 PREREQUISITES
-    AppConfig requires Perl 5.004 or later.
+    AppConfig requires Perl 5.005 or later.
 
-    The AppConfig::Getopt module uses Getopt::Long for advanced command-line
-    option processing and requires version 2.17 or later. There is also a
-    simple internal module (AppConfig::Args) for command line parsing that
-    does not have the flexibility of AppConfig::Getopt but is smaller and
-    incurs less overhead. The Getopt::Long module is not required when this
-    is used. The Makefile.PL specifies Getopt::Long version 2.17 as a pre-
-    requisite. If you wish to use AppConfig without Getopt::Long then
-    comment out the following line in the Makefile.PL:
-
-        #    'PREREQ_PM'      => { 'Getopt::Long' => 2.17 },
-
-    No action is necessary if you already have Getopt::Long 2.17 or later
-    installed. Getopt::Long is available from any CPAN site (see below).
-
-    All AppConfig::* and other modules (e.g. Getopt::Long) are dynamically
-    loaded by the AppConfig module as and when required.
+    The Getopt::Long and Test::More modules should be installed. If you are
+    using a recent version of Perl (e.g. 5.8.0) then these should already be
+    installed.
 
 OBTAINING AND INSTALLING THE AppConfig MODULE BUNDLE
     The AppConfig module bundle is available from CPAN. As the 'perlmod'
@@ -138,9 +125,9 @@ OBTAINING AND INSTALLING THE AppConfig MODULE BUNDLE
 
         AppConfig-<version>.tar.gz
 
-    Note that "<version>" represents the current AppConfig Revision number,
-    of the form "2.00". See the REVISION section below to determine the
-    current version number for AppConfig.
+    Note that "<version>" represents the current AppConfig version number,
+    of the form "n.nn", e.g. "3.14". See the REVISION section below to
+    determine the current version number for AppConfig.
 
     Unpack the archive to create a AppConfig installation directory:
 
@@ -161,7 +148,7 @@ OBTAINING AND INSTALLING THE AppConfig MODULE BUNDLE
     The 'make install' will install the module on your system. You may need
     administrator privileges to perform this task. If you install the module
     in a local directory (for example, by executing "perl Makefile.PL
-    LIB=~/lib" in the above - see `perldoc MakeMaker' for full details), you
+    LIB=~/lib" in the above - see "perldoc MakeMaker" for full details), you
     will need to ensure that the PERL5LIB environment variable is set to
     include the location, or add a line to your scripts explicitly naming
     the library location:
@@ -172,16 +159,15 @@ OBTAINING AND INSTALLING THE AppConfig MODULE BUNDLE
     AppConfig modules.
 
 AUTHOR
-    Andy Wardley, `<abw@cre.canon.co.uk>', http://www.kfs.org/~abw/
+    Andy Wardley, <abw@wardley.org>
 
-    Web Technology Group, Canon Research Centre Europe Ltd.
-
-REVISION
-    $Revision: 1.52 $
+VERSION
+    This is version 1.54.
 
 COPYRIGHT
-    Copyright (C) 1998 Canon Research Centre Europe Ltd. All Rights
-    Reserved.
+    Copyright (C) 1997-2003 Andy Wardley. All Rights Reserved.
+
+    Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 
     This module is free software; you can redistribute it and/or modify it
     under the same terms as Perl itself.

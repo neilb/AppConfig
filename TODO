@@ -16,9 +16,14 @@
 #
 #----------------------------------------------------------------------------
 #
-# $Id: TODO,v 1.52 1998/10/29 11:38:41 abw Exp abw $
+# $Id: TODO,v 1.1.1.1 1999/09/14 16:39:44 abw Exp $
 #
 #============================================================================
+
+*** IMPORTANT ***
+
+* change varlist() to varhash()
+
 
 AppConfig::State
 
@@ -32,6 +37,14 @@ AppConfig::State
   blocks, it will be considerably more convenient to say '-v' rather
   than -block_verbose.  The global CMDARG could be a template of the
   form '%c', to indicate the first character, for example.
+
+#------------------------------------------------------------------------
+
+General
+
+* Change _pedantic() and _debug() calls in AppConfig::* constructors
+  to direct $state->{ XXX } lookups.  We are friends, after all and
+  the current approach is likely to be rather inefficient.
 
 #------------------------------------------------------------------------
 

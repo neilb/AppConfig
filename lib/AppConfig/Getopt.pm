@@ -10,37 +10,27 @@
 # line arguments to it.  Internal variable values are updated by callback
 # from GetOptions().
 # 
-# Written by Andy Wardley <abw@cre.canon.co.uk>
+# Written by Andy Wardley <abw@wardley.org>
 #
+# Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
-# All Rights Reserved.
 #
-#----------------------------------------------------------------------------
-#
-# $Id: Getopt.pm,v 1.51 1998/10/29 11:01:31 abw Exp abw $
+# $Id: Getopt.pm,v 1.2 2003/04/29 09:22:33 abw Exp $
 #
 #============================================================================
 
 package AppConfig::Getopt;
 
-require 5.004;
-
+require 5.005;
 use AppConfig::State;
 use Getopt::Long 2.17;
-
 use strict;
 use vars qw( $VERSION );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.51 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
 
 
-
-#========================================================================
-#                      -----  PUBLIC METHODS -----
-#========================================================================
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # new($state, \@args)
 #
 # Module constructor.  The first, mandatory parameter should be a 
@@ -50,8 +40,7 @@ $VERSION = sprintf("%d.%02d", q$Revision: 1.51 $ =~ /(\d+)\.(\d+)/);
 # processing.
 #
 # Returns a reference to a newly created AppConfig::Getopt object.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub new {
     my $class = shift;
@@ -64,7 +53,7 @@ sub new {
 
     bless $self, $class;
 	
-    # call args() to parse any arg list passed 
+    # call parse() to parse any arg list passed 
     $self->parse(@_)
 	if @_;
 
@@ -72,17 +61,14 @@ sub new {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # parse(@$config, \@args)
 #
 # Constructs the appropriate configuration information and then delegates
 # the task of processing command line options to Getopt::Long.
 #
 # Returns 1 on success or 0 if one or more warnings were raised.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub parse {
     my $self  = shift;
@@ -144,30 +130,20 @@ sub parse {
 }
 
 
-
 #========================================================================
-#
 # AppConfig::State
-#
-# NOTE: we're switching packages to AppConfig::State to extend the
-# functionality of the State module.  
-#
 #========================================================================
 
 package AppConfig::State;
 
-
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _getopt_state()
 #
 # Constructs option specs in the Getopt::Long format for each variable 
 # definition.
 #
 # Returns a list of specification strings.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub _getopt_state {
     my $self = shift;
@@ -239,7 +215,6 @@ AppConfig::Getopt is used automatically if you use the AppConfig module
 and create an AppConfig::Getopt object through the getopt() method.
       
 AppConfig::Getopt is implemented using object-oriented methods.  A new 
-AppConfig::Getopt is implemented using object-oriented methods.  A new 
 AppConfig::Getopt object is created and initialised using the new() method.
 This returns a reference to a new AppConfig::Getopt object.  A reference to
 an AppConfig::State object should be passed in as the first parameter:
@@ -278,27 +253,26 @@ module via the getopt() method.
 
 =head1 AUTHOR
 
-Andy Wardley, C<E<lt>abw@cre.canon.co.ukE<gt>>
+Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
-Web Technology Group, Canon Research Centre Europe Ltd.
+=head1 REVISION
+
+$Revision: 1.2 $
+
+=head1 COPYRIGHT
+
+Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+
+Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
+
+This module is free software; you can redistribute it and/or modify it 
+under the same terms as Perl itself.
 
 =head1 ACKNOWLEDGMENTS
 
 Many thanks are due to Johan Vromans for the Getopt::Long module.  He was 
 kind enough to offer assistance and access to early releases of his code to 
 enable this module to be written.
-
-=head1 REVISION
-
-$Revision: 1.51 $
-
-=head1 COPYRIGHT
-
-Copyright (C) 1998 Canon Research Centre Europe Ltd.  
-All Rights Reserved.
-
-This module is free software; you can redistribute it and/or modify it 
-under the same terms as Perl itself.
 
 =head1 SEE ALSO
 

@@ -5,25 +5,22 @@
 # Perl5 module providing platform-specific information and operations as 
 # required by other AppConfig::* modules.
 #
-# Written by Andy Wardley <abw@cre.canon.co.uk>
+# Written by Andy Wardley <abw@wardley.org>
 #
-# Copyright (C) 1998 Canon Research Centre Europe Ltd.
-# All Rights Reserved.
+# Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+# Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 #
-#----------------------------------------------------------------------------
-#
-# $Id: Sys.pm,v 1.50 1998/10/21 09:27:18 abw Exp $
+# $Id: Sys.pm,v 1.2 2003/04/29 09:22:33 abw Exp $
 #
 #============================================================================
 
 package AppConfig::Sys;
 
 require 5.004;
-
 use strict;
 use vars qw( $VERSION $AUTOLOAD $OS %CAN %METHOD);
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.50 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
 
 BEGIN {
     # define the methods that may be available
@@ -40,23 +37,16 @@ BEGIN {
     	$CAN{ $method } = ! $@;
     }
 }
-    
 
 
-#========================================================================
-#                      -----  PUBLIC METHODS -----
-#========================================================================
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # new($os)
 #
 # Module constructor.  An optional operating system string may be passed
 # to explicitly define the platform type.
 #
 # Returns a reference to a newly created AppConfig::Sys object.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub new {
     my $class = shift;
@@ -74,17 +64,14 @@ sub new {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # AUTOLOAD
 #
 # Autoload function called whenever an unresolved object method is 
 # called.  If the method name relates to a METHODS entry, then it is 
 # called iff the corresponding CAN_$method is set true.  If the 
 # method name relates to a CAN_$method value then that is returned.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub AUTOLOAD {
     my $self = shift;
@@ -117,21 +104,14 @@ sub AUTOLOAD {
 }
 
 
-
-#========================================================================
-#                      -----  PRIVATE METHODS -----
-#========================================================================
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _configure($os)
 #
 # Uses the first parameter, $os, the package variable $AppConfig::Sys::OS,
 # the value of $^O, or as a last resort, the value of
 # $Config::Config('osname') to determine the current operating
 # system/platform.  Sets internal variables accordingly.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub _configure {
     my $self = shift;
@@ -185,14 +165,11 @@ sub _configure {
 }
 
 
-
-#========================================================================
-#
+#------------------------------------------------------------------------
 # _dump()
 #
 # Dump internals for debugging.
-#
-#========================================================================
+#------------------------------------------------------------------------
 
 sub _dump {
     my $self = shift;
@@ -283,17 +260,17 @@ determine if this function is available.
 
 =head1 AUTHOR
 
-Andy Wardley, C<E<lt>abw@cre.canon.co.ukE<gt>>
-
-Web Technology Group, Canon Research Centre Europe Ltd.
+Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
 =head1 REVISION
 
-$Revision: 1.50 $
+$Revision: 1.2 $
 
 =head1 COPYRIGHT
 
-Copyright (C) 1998 Canon Research Centre Europe Ltd.  All Rights Reserved.
+Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+
+Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 
 This module is free software; you can redistribute it and/or modify it under 
 the term of the Perl Artistic License.
