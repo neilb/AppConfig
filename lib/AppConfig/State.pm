@@ -43,13 +43,15 @@ package AppConfig::State;
 require 5.004;
 
 use strict;
-use vars qw( $VERSION $AUTOLOAD $DEBUG );
+
+use vars qw( $VERSION $DEBUG $AUTOLOAD );
+BEGIN {
+	$VERSION = '1.63';
+	$DEBUG   = 0;
+}
 
 # need access to AppConfig::ARGCOUNT_*
 use AppConfig qw(:argcount);
-
-$VERSION = sprintf("%d.%02d", q$Revision: 1.61 $ =~ /(\d+)\.(\d+)/);
-$DEBUG   = 0;
 
 # internal per-variable hashes that AUTOLOAD should provide access to
 my %METHVARS;

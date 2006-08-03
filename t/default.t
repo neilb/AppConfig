@@ -1,3 +1,5 @@
+#!/usr/bin/perl -w
+
 #========================================================================
 #
 # t/default.t 
@@ -18,7 +20,6 @@
 use strict;
 use vars qw($loaded);
 use lib qw( ../lib ./lib );
-$^W = 1;
 
 BEGIN { 
     $| = 1; 

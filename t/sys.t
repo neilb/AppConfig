@@ -1,3 +1,5 @@
+#!/usr/bin/perl -w
+
 #========================================================================
 #
 # t/sys.t 
@@ -19,8 +21,6 @@ use vars qw($loaded);
 use AppConfig::Sys;
 use Test::More tests => 2;
 
-$^W = 1;
-
 my $DEBUG = grep(/^--?d(ebug)?$/, @ARGV);
 
 # create two alternate AppConfig::Sys objects
@@ -30,9 +30,8 @@ my $winsys = AppConfig::Sys->new('win32');
 ok( defined $sys, 'created system object' );
 ok( defined $winsys, 'created windows object' );
 
-$sys->_dump if $DEBUG;
-$winsys->_dump() if $DEBUG;
-
+$sys->_dump    if $DEBUG;
+$winsys->_dump if $DEBUG;
 
 if ($DEBUG) {
     foreach my $s ($sys, $winsys) {

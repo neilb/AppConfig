@@ -1,3 +1,5 @@
+#!/usr/bin/perl -w
+
 #========================================================================
 #
 # t/flag.t 
@@ -24,7 +26,6 @@
 
 use strict;
 use vars qw($loaded @expect);
-$^W = 1;
 
 BEGIN { 
     # what we expect the debug state(s) to be

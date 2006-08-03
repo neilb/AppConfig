@@ -1,4 +1,6 @@
- #========================================================================
+#!/usr/bin/perl -w
+
+#========================================================================
 #
 # t/file.t 
 #
@@ -26,7 +28,6 @@ use strict;
 use vars qw($loaded);
 use lib qw( ../lib ./lib );
 use Test::More tests => 43;
-use warnings;
 
 use AppConfig qw(:expand :argcount);
 use AppConfig::File;

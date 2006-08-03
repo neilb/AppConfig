@@ -1,3 +1,5 @@
+#!/usr/bin/perl -w
+
 #========================================================================
 #
 # t/args.t 
@@ -23,7 +25,6 @@
 use lib qw( ../lib ./lib );
 use strict;
 use vars qw($loaded);
-use warnings;
 use AppConfig qw(:argcount);
 use AppConfig::Args;
 use Test::More tests => 17;

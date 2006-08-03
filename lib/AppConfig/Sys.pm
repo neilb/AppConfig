@@ -18,10 +18,13 @@ package AppConfig::Sys;
 
 require 5.004;
 use strict;
-use vars qw( $VERSION $AUTOLOAD $OS %CAN %METHOD);
+use vars qw( $AUTOLOAD $OS %CAN %METHOD);
 use POSIX qw( getpwnam getpwuid );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.61 $ =~ /(\d+)\.(\d+)/);
+use vars qw( $VERSION );
+BEGIN {
+	$VERSION = '1.63';
+}
 
 BEGIN {
     # define the methods that may be available
@@ -214,6 +217,8 @@ sub _dump {
 
 __END__
 
+=pod
+
 =head1 NAME
 
 AppConfig::Sys - Perl5 module defining platform-specific information and methods for other AppConfig::* modules.
@@ -279,6 +284,8 @@ Returns undef if not available.  The can_getpwuid() method can be called to
 determine if this function is available.
 
 =item 
+
+=back
 
 =head1 AUTHOR
 

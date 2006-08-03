@@ -25,10 +25,11 @@ require 5.005;
 use AppConfig::State;
 use Getopt::Long 2.17;
 use strict;
+
 use vars qw( $VERSION );
-
-$VERSION = sprintf("%d.%02d", q$Revision: 1.60 $ =~ /(\d+)\.(\d+)/);
-
+BEGIN {
+	$VERSION = '1.63';
+}
 
 #------------------------------------------------------------------------
 # new($state, \@args)

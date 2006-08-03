@@ -4,8 +4,9 @@ my %config = (
     'NAME'	   => 'AppConfig',
     'VERSION_FROM' => 'lib/AppConfig.pm', # finds $VERSION
     'PMLIBDIRS'    => [ 'lib' ],
-    'PREREQ_PM'    => { 
-        'Test::More' => 0,
+    'PREREQ_PM'    => {
+	'File::HomeDir' => '0.57',
+        'Test::More'    => 0,
     },
     'MAN3PODS' => { 
         # We must explicitly name AppConfig.pm et al as manifyable files.
@@ -29,6 +30,5 @@ if ($] ge '5.005') {
     $config{ AUTHOR   } = 'Andy Wardley <abw@wardley.org>',
     $config{ ABSTRACT } = 'AppConfig is a bundle of Perl5 modules for reading configuration files and parsing command line arguments.';
 }
-
 
 WriteMakefile(%config);

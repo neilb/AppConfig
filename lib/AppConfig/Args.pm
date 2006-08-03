@@ -19,9 +19,11 @@ package AppConfig::Args;
 require 5.004;
 use AppConfig::State;
 use strict;
-use vars qw( $VERSION );
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.60 $ =~ /(\d+)\.(\d+)/);
+use vars qw( $VERSION );
+BEGIN {
+	$VERSION = '1.63';
+}
 
 
 #------------------------------------------------------------------------

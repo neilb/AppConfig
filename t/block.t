@@ -1,3 +1,5 @@
+#!/usr/bin/perl -w
+
 #========================================================================
 #
 # t/block.t 
@@ -18,8 +20,8 @@ use strict;
 use vars qw($loaded);
 use AppConfig qw(:expand :argcount);
 use AppConfig::File;
+use File::HomeDir;
 use Test::More tests => 7;
-$^W = 1;
 
 
 #------------------------------------------------------------------------
@@ -53,7 +55,9 @@ ok( $state->foo() eq 'This is foo' );
 ok( $state->bar() eq 'This is bar' );
 
 #7 - #8: test [dir] block variables got set correctly
-my $env_home = defined $ENV{ HOME } ? $ENV{ HOME } : '';
+my $env_home = defined $ENV{ HOME }
+	? $ENV{ HOME }
+	: File::HomeDir->my_home;
 ok( $state->dir_home() eq  $env_home                   );
 ok( $state->dir_html() eq ($env_home . '/public_html') );
 

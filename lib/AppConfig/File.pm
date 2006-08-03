@@ -16,13 +16,21 @@
 
 package AppConfig::File;
 
+use strict;
+
 require 5.005;
+
 use AppConfig;
 use AppConfig::State;
-use strict;
-use vars qw( $VERSION );
+use File::HomeDir;
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.62 $ =~ /(\d+)\.(\d+)/);
+use vars qw( $VERSION );
+BEGIN {
+	$VERSION = '1.63';
+}
+
+
+
 
 
 #------------------------------------------------------------------------
@@ -48,9 +56,13 @@ sub new {
 
     bless $self, $class;
 
+    # Find the home directory
+    my $home = File::HomeDir->my_home
+        or die "Failed to locate HOME directory";
+    $self->{ HOME } = $home;
+
     # call parse(@_) to parse any files specified as further params
-    $self->parse(@_)
-	if @_;
+    $self->parse(@_) if @_;
 
     return $self;
 }
@@ -401,20 +413,9 @@ sub _expand {
 		    if ($sys->can_getpwnam()) {
 			$val = ($sys->getpwnam($var))[7];
 		    }
-		}
-		else {
+		} else {
 		    # determine home directory 
-		    unless (defined($val = $self->{ HOME })) {
-			if (exists $ENV{ HOME }) {
-			    $val = $ENV{ HOME };
-			}
-			elsif ($sys->can_getpwuid()) {
-			    $val = ($sys->getpwuid($<))[7];
-			}
-
-			# cache value for next time
-			$self->{ HOME } = $val;
-		    }
+		    $val = $self->{ HOME };
 		}
 
 		# catch-all for undefined $dir
@@ -453,8 +454,11 @@ sub _expand {
 		# expand the variable if defined
 		if (exists $ENV{ $var }) {
 		    $val = $ENV{ $var };
-		}
-		else {
+		} elsif ( $var eq 'HOME' ) {
+		    # In the special case of HOME, if not set
+		    # use the internal version
+		    $val = $self->{ HOME };
+		} else {
 		    # raise a warning if EXPAND_WARN set
 		    if ($expand & AppConfig::EXPAND_WARN) {
 			$state->_error("$var: no such environment variable");

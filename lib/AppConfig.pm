@@ -16,16 +16,18 @@
 
 package AppConfig;
 
-require 5.005;
-
 use strict;
-use Exporter;
-use vars qw( $VERSION $AUTOLOAD @EXPORT_OK %EXPORT_TAGS );
-use base qw( Exporter );
+
+require 5.005;
 
 ## This is the main version number for AppConfig
 ## It is extracted by ExtUtils::MakeMaker and inserted in various places.
-$VERSION = '1.56';
+use vars qw{$VERSION @ISA };
+BEGIN {
+	require Exporter;
+	$VERSION = '1.63';
+	@ISA     = qw{ Exporter };
+}
 
 # variable expansion constants
 use constant EXPAND_NONE    => 0;
@@ -46,6 +48,7 @@ my @EXPAND   = qw(EXPAND_NONE EXPAND_VAR EXPAND_UID EXPAND_ENV
                   EXPAND_ALL EXPAND_WARN);
 my @ARGCOUNT = qw(ARGCOUNT_NONE ARGCOUNT_ONE ARGCOUNT_LIST ARGCOUNT_HASH);
 
+use vars qw( $AUTOLOAD @EXPORT_OK %EXPORT_TAGS );
 @EXPORT_OK   = (@EXPAND, @ARGCOUNT);
 %EXPORT_TAGS = (
     expand   => [ @EXPAND   ],
