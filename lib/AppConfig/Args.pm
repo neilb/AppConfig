@@ -1,3 +1,5 @@
+package AppConfig::Args;
+
 #============================================================================
 #
 # AppConfig::Args.pm
@@ -14,15 +16,15 @@
 #
 #============================================================================
 
-package AppConfig::Args;
-
 require 5.004;
-use AppConfig::State;
+
 use strict;
+
+use AppConfig::State;
 
 use vars qw( $VERSION );
 BEGIN {
-	$VERSION = '1.63';
+	$VERSION = '1.64';
 }
 
 

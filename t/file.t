@@ -31,6 +31,7 @@ use Test::More tests => 43;
 
 use AppConfig qw(:expand :argcount);
 use AppConfig::File;
+use File::HomeDir;
 ok(1);
 
 
@@ -105,14 +106,18 @@ ok( $state->html() eq 'public_html' );
 # cash should *not* be expanded (EXPAND_NONE) to protect '$'
 ok( $state->cash() eq 'I won $200!' );
 
-#  hdir expands variables ($html) but not uids (~)
-ok( $state->hdir() eq '~/public_html' );
+SKIP: {
+	skip("User does not have a home directory", 2) unless defined File::HomeDir->my_home;
 
-# see if "[~/$html]" matches "[${HOME}/$html]".  It may fail if your
-#   platform doesn't provide getpwuid().  See AppConfig::Sys for details.
-my ($one, $two) = 
-    $state->same() =~ / \[ ( [^\]]+ ) \] \s+=>\s+ \[ ( [^\]]+ ) \]/gx;
-is( $one, $two, 'one is two' );
+	#  hdir expands variables ($html) but not uids (~)
+	ok( $state->hdir() eq '~/public_html' );
+
+	# see if "[~/$html]" matches "[${HOME}/$html]".  It may fail if your
+	#   platform doesn't provide getpwuid().  See AppConfig::Sys for details.
+	my ($one, $two) = 
+    	$state->same() =~ / \[ ( [^\]]+ ) \] \s+=>\s+ \[ ( [^\]]+ ) \]/gx;
+	is( $one, $two, 'one is two' );
+}
 
 # test that "split" came out the same as "same"
 is( $state->same(), $state->split(), 'same split' );

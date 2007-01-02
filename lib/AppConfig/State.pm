@@ -1,3 +1,5 @@
+package AppConfig::State;
+
 #============================================================================
 #
 # AppConfig::State.pm
@@ -38,15 +40,13 @@
 #
 #============================================================================
 
-package AppConfig::State;
-
 require 5.004;
 
 use strict;
 
 use vars qw( $VERSION $DEBUG $AUTOLOAD );
 BEGIN {
-	$VERSION = '1.63';
+	$VERSION = '1.64';
 	$DEBUG   = 0;
 }
 

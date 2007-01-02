@@ -10,7 +10,7 @@ LICENSE
 Makefile.PL
 MANIFEST
 README
-t/99_pod.t
+t/99_author.t
 t/appconfig.t
 t/args.t
 t/block.t

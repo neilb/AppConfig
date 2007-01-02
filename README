@@ -843,34 +843,37 @@ NAME
 
 SYNOPSIS
         use AppConfig;
-
+    
         # create a new AppConfig object
-        my $config = AppConfig->new(\%cfg);
-
+        my $config = AppConfig->new( \%cfg );
+    
         # define a new variable
-        $config->define($varname => \%varopts);
-
+        $config->define( $varname => \%varopts );
+    
         # create/define combined
-        my $config = AppConfig->new(\%cfg, 
-        $varname => \%varopts, $varname => \%varopts, ...);
-
+        my $config = AppConfig->new( \%cfg, 
+            $varname => \%varopts,
+            $varname => \%varopts,
+            ...
+        );
+    
         # set/get the value
-        $config->set($varname, $value);
+        $config->set( $varname, $value );
         $config->get($varname);
-
+    
         # shortcut form
         $config->varname($value);
-        $config->varname();
-
+        $config->varname;
+    
         # read configuration file
         $config->file($file);
-
+    
         # parse command line options
         $config->args(\@args);      # default to \@ARGV
-
+    
         # advanced command line options with Getopt::Long
         $config->getopt(\@args);    # default to \@ARGV
-
+    
         # parse CGI parameters (GET method)
         $config->cgi($query);       # default to $ENV{ QUERY_STRING }
 
@@ -889,14 +892,14 @@ OVERVIEW
         verbose 
         nohelp
         debug = On
-
+    
         # single value
         home  = /home/abw/
-
+    
         # multiple list value
         file = /tmp/file1
         file = /tmp/file2
-
+    
         # multiple hash value
         book  camel = Programming Perl
         book  llama = Learning Perl
@@ -924,7 +927,7 @@ OVERVIEW
         src  = ~/websrc/docs/$site
         lib  = ~/websrc/lib
         dest = ~/public_html/$site
-
+    
         [page]
         header = $lib/header
         footer = $lib/footer
@@ -936,7 +939,7 @@ OVERVIEW
         line 1
         line 2
         FOOBAR
-
+    
         paths  exe  = "${PATH}:${HOME}/.bin"
         paths  link = <<'FOO'
         ${LD_LIBARRAY_PATH}:${HOME}/lib
@@ -969,9 +972,9 @@ OBTAINING AND INSTALLING THE AppConfig MODULE BUNDLE
         CPAN stands for the Comprehensive Perl Archive Network.
         This is a globally replicated collection of all known Perl
         materials, including hundreds of unbundled modules.  
-
+    
         [...]
-
+    
         For an up-to-date listing of CPAN sites, see
         http://www.perl.com/perl/ or ftp://ftp.perl.com/perl/ .
 
@@ -1052,14 +1055,14 @@ DESCRIPTION
     The first (optional) parameter may be a reference to a hash array
     containing configuration information.
 
-        my $config = AppConfig->new({
+        my $config = AppConfig->new( {
                 CASE   => 1,
                 ERROR  => \&my_error,
                 GLOBAL => { 
                         DEFAULT  => "<unset>", 
                         ARGCOUNT => ARGCOUNT_ONE,
                     },
-            });
+            } );
 
     See AppConfig::State for full details of the configuration options
     available. These are, in brief:
@@ -1087,7 +1090,7 @@ DESCRIPTION
     the define() method, described below in "DEFINING VARIABLES".
 
         my $config = AppConfig->new("foo", "bar", "baz");
-        my $config = AppConfig->new({ CASE => 1 }, qw(foo bar baz));
+        my $config = AppConfig->new( { CASE => 1 }, qw(foo bar baz) );
 
     Note that any unresolved method calls to AppConfig are automatically
     delegated to the AppConfig::State object. In practice, it means that it
@@ -1096,7 +1099,7 @@ DESCRIPTION
 
         # create AppConfig
         my $config = AppConfig->new('foo', 'bar');
-
+    
         # methods get passed through to internal AppConfig::State
         $config->foo(100);
         $config->set('bar', 200);
@@ -1126,12 +1129,12 @@ DESCRIPTION
     Configuration items specified in the GLOBAL option to the module
     constructor are applied by default when variables are created. e.g.
 
-        my $config = AppConfig->new({ 
-                GLOBAL => {
-                        DEFAULT  => "<undef>",
-                        ARGCOUNT => ARGCOUNT_ONE,
-                    }
-            });
+        my $config = AppConfig->new( { 
+            GLOBAL => {
+                DEFAULT  => "<undef>",
+                ARGCOUNT => ARGCOUNT_ONE,
+            }
+        } );
     
         $config->define("foo");
         $config->define("bar", { ARGCOUNT => ARGCOUNT_NONE } );
@@ -1139,16 +1142,16 @@ DESCRIPTION
     is equivalent to:
 
         my $config = AppConfig->new();
-
-        $config->define("foo", {
-                    DEFAULT  => "<undef>",
-                    ARGCOUNT => ARGCOUNT_ONE,
-                });
-
-        $config->define("bar", 
-                    DEFAULT  => "<undef>",
-                    ARGCOUNT => ARGCOUNT_NONE,
-                });
+    
+        $config->define( "foo", {
+            DEFAULT  => "<undef>",
+            ARGCOUNT => ARGCOUNT_ONE,
+        } );
+    
+        $config->define( "bar", 
+            DEFAULT  => "<undef>",
+            ARGCOUNT => ARGCOUNT_NONE,
+        } );
 
     Multiple variables may be defined in the same call to define().
     Configuration hashes for variables can be omitted.
@@ -1222,30 +1225,30 @@ DESCRIPTION
     equivalent full specifications:
 
         $config->define("foo|bar|baz!");
-
+    
         $config->define(
                 "foo" => { 
                     ALIAS    => "bar|baz", 
                     ARGCOUNT => ARGCOUNT_NONE,
                 });
-
+    
         $config->define("name=s");
-
+    
         $config->define(
                 "name" => { 
                     ARGCOUNT => ARGCOUNT_ONE,
                 });
-
+    
         $config->define("file|filelist|f=s@");
-
+    
         $config->define(
                 "file" => { 
                     ALIAS    => "filelist|f", 
                     ARGCOUNT => ARGCOUNT_LIST,
                 });
-
+    
         $config->define("user|u=s%");
-
+    
         $config->define(
                 "user" => { 
                     ALIAS    => "u", 
@@ -1429,10 +1432,10 @@ DESCRIPTION
 
         bin = ~/bin          # expand '~' to home dir if EXPAND_UID
         tmp = ~abw/tmp       # as above, but home dir for user 'abw'
-
+    
         perl = $bin/perl     # expand value of 'bin' variable if EXPAND_VAR
         ripl = $(bin)/ripl   # as above with explicit parens
-
+    
         home = ${HOME}       # expand HOME environment var if EXPAND_ENV
 
     See AppConfig::State for more information on expanding variable values.
@@ -1446,7 +1449,7 @@ DESCRIPTION
 
         [block1]
         foo = 10             # block1_foo = 10
-
+    
         [block2]
         foo = 20             # block2_foo = 20
 
@@ -1502,13 +1505,13 @@ DESCRIPTION
 
         myprog -file /tmp/foo -file /tmp/bar # $config->file('/tmp/foo')
                                              # $config->file('/tmp/bar')
-
+    
         # file => [ '/tmp/foo', '/tmp/bar' ]
     
         myprog -door "jim=Jim Morrison" -door "ray=Ray Manzarek"
                                         # $config->door("jim=Jim Morrison");
                                         # $config->door("ray=Ray Manzarek");
-
+    
         # door => { 'jim' => 'Jim Morrison', 'ray' => 'Ray Manzarek' }
 
     See AppConfig::Args for further details on parsing command line
@@ -1539,7 +1542,7 @@ DESCRIPTION
             ARGS  => "=i",
             ALIAS => "bar|baz",
         });
-
+    
         # Getopt::Long specification: "foo|bar|baz=i"
 
     Errors and warning generated by the Getopt::Long module are trapped and
@@ -1572,8 +1575,8 @@ DESCRIPTION
     to restore the parameters to their intended values.
 
         http://where.com/mycgi?title=%22The+Wrong+Trousers%22
-
-            # $config->title('"The Wrong Trousers"');
+    
+        # $config->title('"The Wrong Trousers"');
 
     Please be considerate of the security implications of providing
     writeable access to script variables via CGI.

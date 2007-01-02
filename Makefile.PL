@@ -5,7 +5,7 @@ my %config = (
     'VERSION_FROM' => 'lib/AppConfig.pm', # finds $VERSION
     'PMLIBDIRS'    => [ 'lib' ],
     'PREREQ_PM'    => {
-	'File::HomeDir' => '0.57',
+	'File::HomeDir' => '0.61',
         'Test::More'    => 0,
     },
     'MAN3PODS' => { 

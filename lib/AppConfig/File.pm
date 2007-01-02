@@ -1,3 +1,5 @@
+package AppConfig::File;
+
 #============================================================================
 #
 # AppConfig::File.pm
@@ -14,8 +16,6 @@
 #
 #============================================================================
 
-package AppConfig::File;
-
 use strict;
 
 require 5.005;
@@ -26,7 +26,7 @@ use File::HomeDir;
 
 use vars qw( $VERSION );
 BEGIN {
-	$VERSION = '1.63';
+	$VERSION = '1.64';
 }
 
 
@@ -57,9 +57,7 @@ sub new {
     bless $self, $class;
 
     # Find the home directory
-    my $home = File::HomeDir->my_home
-        or die "Failed to locate HOME directory";
-    $self->{ HOME } = $home;
+    $self->{HOME} = File::HomeDir->my_home;
 
     # call parse(@_) to parse any files specified as further params
     $self->parse(@_) if @_;
@@ -689,10 +687,10 @@ Three different expansion types may be applied:
 
     bin = ~/bin          # expand '~' to home dir if EXPAND_UID
     tmp = ~abw/tmp       # as above, but home dir for user 'abw'
-
+    
     perl = $bin/perl     # expand value of 'bin' variable if EXPAND_VAR
     ripl = $(bin)/ripl   # as above with explicit parens
-
+    
     home = ${HOME}       # expand HOME environment var if EXPAND_ENV
 
 See L<AppConfig::State> for more information on expanding variable values.

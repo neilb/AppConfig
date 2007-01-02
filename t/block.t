@@ -27,14 +27,21 @@ use Test::More tests => 7;
 #------------------------------------------------------------------------
 # create new AppConfig::State and AppConfig::File objects
 
-my $state = AppConfig::State->new({
-	    GLOBAL => { ARGCOUNT => ARGCOUNT_ONE },
+my $state = AppConfig::State->new(
+	{
+		GLOBAL => {
+			ARGCOUNT => ARGCOUNT_ONE,
+		},
 	},
 	'foo',
 	'bar',
-	'dir_home', { EXPAND => EXPAND_ENV },
-	'dir_html', { EXPAND => EXPAND_ENV },
-    );
+	'dir_home', {
+		EXPAND => EXPAND_ENV,
+	},
+	'dir_html', {
+		EXPAND => EXPAND_ENV,
+	},
+	);
 
 # $state->_debug(1);
 
@@ -51,15 +58,17 @@ ok( $cfgfile->parse(\*DATA) );
 
 
 #5 - #6: test simple variable values got set correctly
-ok( $state->foo() eq 'This is foo' );
-ok( $state->bar() eq 'This is bar' );
+ok( $state->foo eq 'This is foo' );
+ok( $state->bar eq 'This is bar' );
 
 #7 - #8: test [dir] block variables got set correctly
 my $env_home = defined $ENV{ HOME }
 	? $ENV{ HOME }
 	: File::HomeDir->my_home;
-ok( $state->dir_home() eq  $env_home                   );
-ok( $state->dir_html() eq ($env_home . '/public_html') );
+ok( $state->dir_home eq  $env_home                   );
+ok( $state->dir_html eq ($env_home . '/public_html') );
+
+
 
 
 

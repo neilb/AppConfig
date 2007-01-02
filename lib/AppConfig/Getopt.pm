@@ -1,3 +1,5 @@
+package AppConfig::Getopt;
+
 #============================================================================
 #
 # AppConfig::Getopt.pm
@@ -19,8 +21,6 @@
 #
 #============================================================================
 
-package AppConfig::Getopt;
-
 require 5.005;
 use AppConfig::State;
 use Getopt::Long 2.17;
@@ -28,7 +28,7 @@ use strict;
 
 use vars qw( $VERSION );
 BEGIN {
-	$VERSION = '1.63';
+	$VERSION = '1.64';
 }
 
 #------------------------------------------------------------------------

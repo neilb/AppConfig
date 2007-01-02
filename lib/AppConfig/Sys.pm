@@ -1,3 +1,5 @@
+package AppConfig::Sys;
+
 #============================================================================
 #
 # AppConfig::Sys.pm
@@ -14,9 +16,8 @@
 #
 #============================================================================
 
-package AppConfig::Sys;
-
 require 5.004;
+
 use strict;
 use vars qw( $AUTOLOAD $OS %CAN %METHOD);
 use POSIX qw( getpwnam getpwuid );
