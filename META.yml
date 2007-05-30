@@ -1,12 +1,11 @@
 --- #YAML:1.0
 name:                AppConfig
-version:             1.64
+version:             1.65
 abstract:            AppConfig is a bundle of Perl5 modules for reading configuration files and parsing command line arguments.
 license:             ~
 generated_by:        ExtUtils::MakeMaker version 6.31
 distribution_type:   module
 requires:     
-    File::HomeDir:                 0.61
     Test::More:                    0
 meta-spec:
     url:     http://module-build.sourceforge.net/META-spec-v1.2.html

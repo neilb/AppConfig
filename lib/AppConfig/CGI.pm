@@ -1,5 +1,3 @@
-package AppConfig::CGI;
-
 #============================================================================
 #
 # AppConfig::CGI.pm
@@ -12,19 +10,14 @@ package AppConfig::CGI;
 # Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 #
-# $Id: CGI.pm,v 1.60 2003/04/29 10:43:50 abw Exp $
-#
 #============================================================================
 
-require 5.004;
-
-use AppConfig::State;
+package AppConfig::CGI;
 use strict;
+use warnings;
+use AppConfig::State;
+our $VERSION = '1.65';
 
-use vars qw( $VERSION );
-BEGIN {
-	$VERSION = '1.64';
-}
 
 #------------------------------------------------------------------------
 # new($state, $query)
@@ -41,19 +34,16 @@ BEGIN {
 sub new {
     my $class = shift;
     my $state = shift;
-
-    
-    my $self = {
+    my $self  = {
         STATE    => $state,                # AppConfig::State ref
-	DEBUG    => $state->_debug(),      # store local copy of debug
-	PEDANTIC => $state->_pedantic,     # and pedantic flags
-   };
-
+        DEBUG    => $state->_debug(),      # store local copy of debug
+        PEDANTIC => $state->_pedantic,     # and pedantic flags
+    };
     bless $self, $class;
-	
+        
     # call parse(@_) to parse any arg list passed 
     $self->parse(@_)
-	if @_;
+        if @_;
 
     return $self;
 }
@@ -83,7 +73,7 @@ sub parse {
 
     # get the cgi query if not defined
     $query = $ENV{ QUERY_STRING }
-	unless defined $query;
+        unless defined $query;
 
     # no query to process
     return 1 unless defined $query;
@@ -96,42 +86,42 @@ sub parse {
 
     # install a closure as a new error handler
     $state->_ehandler(
-	sub {
-	    # modify the error message 
-	    my $format  = shift;
-	    $format =~ s/</&lt;/g;
-	    $format =~ s/>/&gt;/g;
-	    $format  = "<p>\n<b>[ AppConfig::CGI error: </b>$format<b> ] </b>\n<p>\n";
-	    # send error to stdout for delivery to web client
-	    printf($format, @_);
-	}
+        sub {
+            # modify the error message 
+            my $format  = shift;
+            $format =~ s/</&lt;/g;
+            $format =~ s/>/&gt;/g;
+            $format  = "<p>\n<b>[ AppConfig::CGI error: </b>$format<b> ] </b>\n<p>\n";
+            # send error to stdout for delivery to web client
+            printf($format, @_);
+        }
     );
 
 
     PARAM: foreach (split('&', $query)) {
 
-	# extract parameter and value from query token
-	($variable, $value) = map { _unescape($_) } split('=');
+        # extract parameter and value from query token
+        ($variable, $value) = map { _unescape($_) } split('=');
 
-	# check an argument was provided if one was expected
-	if ($nargs = $state->_argcount($variable)) {
-	    unless (defined $value) {
-		$state->_error("$variable expects an argument");
-		$warnings++;
-		last PARAM if $pedantic;
-		next;
-	    }
-	}
-	# default an undefined value to 1 if ARGCOUNT_NONE
-	else {
-	    $value = 1 unless defined $value;
-	}
+        # check an argument was provided if one was expected
+        if ($nargs = $state->_argcount($variable)) {
+            unless (defined $value) {
+                $state->_error("$variable expects an argument");
+                $warnings++;
+                last PARAM if $pedantic;
+                next;
+            }
+        }
+        # default an undefined value to 1 if ARGCOUNT_NONE
+        else {
+            $value = 1 unless defined $value;
+        }
 
-	# set the variable, noting any error
-	unless ($state->set($variable, $value)) {
-	    $warnings++;
-	    last PARAM if $pedantic;
-	}
+        # set the variable, noting any error
+        unless ($state->set($variable, $value)) {
+            $warnings++;
+            last PARAM if $pedantic;
+        }
     }
 
     # restore original error handler
@@ -225,13 +215,9 @@ module via the cgi() method.
 
 Andy Wardley, C<E<lt>abw@wardley.org<gt>>
 
-=head1 REVISION
-
-$Revision: 1.60 $
-
 =head1 COPYRIGHT
 
-Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+Copyright (C) 1997-2007 Andy Wardley.  All Rights Reserved.
 
 Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 

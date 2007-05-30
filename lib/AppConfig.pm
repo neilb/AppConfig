@@ -1,5 +1,3 @@
-package AppConfig;
-
 #============================================================================
 #
 # AppConfig.pm
@@ -9,26 +7,16 @@ package AppConfig;
 #
 # Written by Andy Wardley <abw@wardley.org>
 #
-# Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+# Copyright (C) 1997-2007 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
-#
-# $Id: AppConfig.pm,v 1.7 2004/02/04 10:28:28 abw Exp $
-#
-#============================================================================
+#==========================================================================
+
+package AppConfig;
 
 use strict;
-
-require 5.005;
-
-## This is the main version number for AppConfig
-## It is extracted by ExtUtils::MakeMaker and inserted in various places.
-use vars qw{$VERSION @ISA};
-BEGIN {
-	require Exporter;
-
-	$VERSION = '1.64';
-	@ISA     = qw{ Exporter };
-}
+use warnings;
+use base 'Exporter';
+our $VERSION = 1.65;
 
 # variable expansion constants
 use constant EXPAND_NONE   => 0;
@@ -45,32 +33,30 @@ use constant ARGCOUNT_LIST => 2;
 use constant ARGCOUNT_HASH => 3;
 
 # Exporter tagsets
-my @EXPAND = qw(
-	EXPAND_NONE
-	EXPAND_VAR
-	EXPAND_UID
-	EXPAND_ENV 
-	EXPAND_ALL
-	EXPAND_WARN
-	);
+our @EXPAND = qw(
+    EXPAND_NONE
+    EXPAND_VAR
+    EXPAND_UID
+    EXPAND_ENV 
+    EXPAND_ALL
+    EXPAND_WARN
+);
 
-my @ARGCOUNT = qw(
-	ARGCOUNT_NONE
-	ARGCOUNT_ONE
-	ARGCOUNT_LIST
-	ARGCOUNT_HASH
-	);
+our @ARGCOUNT = qw(
+    ARGCOUNT_NONE
+    ARGCOUNT_ONE
+    ARGCOUNT_LIST
+    ARGCOUNT_HASH
+);
 
-use vars qw( $AUTOLOAD @EXPORT_OK %EXPORT_TAGS );
-@EXPORT_OK   = ( @EXPAND, @ARGCOUNT );
-%EXPORT_TAGS = (
+our @EXPORT_OK   = ( @EXPAND, @ARGCOUNT );
+our %EXPORT_TAGS = (
     expand   => [ @EXPAND   ],
     argcount => [ @ARGCOUNT ],
 );
+our $AUTOLOAD;
 
-
-
-
+require AppConfig::State;
 
 #------------------------------------------------------------------------
 # new(\%config, @vars)
@@ -81,21 +67,11 @@ use vars qw( $AUTOLOAD @EXPORT_OK %EXPORT_TAGS );
 #------------------------------------------------------------------------
 
 sub new {
-	my $class = shift;
-
-	require AppConfig::State;
-
-	my $self = {
-		STATE => AppConfig::State->new(@_)
-	};
-
-	bless $self, $class;
-
-	return $self;
+    my $class = shift;
+    bless {
+        STATE => AppConfig::State->new(@_)
+    }, $class;
 }
-
-
-
 
 
 #------------------------------------------------------------------------
@@ -107,21 +83,18 @@ sub new {
 #------------------------------------------------------------------------
 
 sub file {
-	my $self  = shift;
-	my $state = $self->{ STATE };
-	my $file;
+    my $self  = shift;
+    my $state = $self->{ STATE };
+    my $file;
 
-	require AppConfig::File;
+    require AppConfig::File;
 
-	# create an AppConfig::File object if one isn't defined 
-	$file = $self->{ FILE } ||= AppConfig::File->new($state);
+    # create an AppConfig::File object if one isn't defined 
+    $file = $self->{ FILE } ||= AppConfig::File->new($state);
 
-	# call on the AppConfig::File object to process files.
-	$file->parse(@_);
+    # call on the AppConfig::File object to process files.
+    $file->parse(@_);
 }
-
-
-
 
 
 #------------------------------------------------------------------------
@@ -133,21 +106,18 @@ sub file {
 #------------------------------------------------------------------------
 
 sub args {
-	my $self  = shift;
-	my $state = $self->{ STATE };
-	my $args;
+    my $self  = shift;
+    my $state = $self->{ STATE };
+    my $args;
 
-	require AppConfig::Args;
+    require AppConfig::Args;
 
-	# create an AppConfig::Args object if one isn't defined
-	$args = $self->{ ARGS } ||= AppConfig::Args->new($state);
+    # create an AppConfig::Args object if one isn't defined
+    $args = $self->{ ARGS } ||= AppConfig::Args->new($state);
 
-	# call on the AppConfig::Args object to process arguments.
-	$args->parse(shift);
+    # call on the AppConfig::Args object to process arguments.
+    $args->parse(shift);
 }
-
-
-
 
 
 #------------------------------------------------------------------------
@@ -159,21 +129,18 @@ sub args {
 #------------------------------------------------------------------------
 
 sub getopt {
-	my $self  = shift;
-	my $state = $self->{ STATE };
-	my $getopt;
+    my $self  = shift;
+    my $state = $self->{ STATE };
+    my $getopt;
 
-	require AppConfig::Getopt;
+    require AppConfig::Getopt;
 
-	# create an AppConfig::Getopt object if one isn't defined
-	$getopt = $self->{ GETOPT } ||= AppConfig::Getopt->new($state);
+    # create an AppConfig::Getopt object if one isn't defined
+    $getopt = $self->{ GETOPT } ||= AppConfig::Getopt->new($state);
 
-	# call on the AppConfig::Getopt object to process arguments.
-	$getopt->parse(@_);
+    # call on the AppConfig::Getopt object to process arguments.
+    $getopt->parse(@_);
 }
-
-
-
 
 
 #------------------------------------------------------------------------
@@ -185,23 +152,19 @@ sub getopt {
 #------------------------------------------------------------------------
 
 sub cgi {
-	my $self  = shift;
-	my $state = $self->{ STATE };
-	my $cgi;
+    my $self  = shift;
+    my $state = $self->{ STATE };
+    my $cgi;
 
-	require AppConfig::CGI;
+    require AppConfig::CGI;
 
-	# create an AppConfig::CGI object if one isn't defined
-	$cgi = $self->{ CGI } ||= AppConfig::CGI->new($state);
+    # create an AppConfig::CGI object if one isn't defined
+    $cgi = $self->{ CGI } ||= AppConfig::CGI->new($state);
 
-	# call on the AppConfig::CGI object to process a query.
-	$cgi->parse(shift);
+    # call on the AppConfig::CGI object to process a query.
+    $cgi->parse(shift);
 }
 
-
-
-
-    
 #------------------------------------------------------------------------
 # AUTOLOAD
 #
@@ -212,17 +175,17 @@ sub cgi {
 #------------------------------------------------------------------------
 
 sub AUTOLOAD {
-	my $self = shift;
-	my $method;
+    my $self = shift;
+    my $method;
 
-	# splat the leading package name
-	($method = $AUTOLOAD) =~ s/.*:://;
+    # splat the leading package name
+    ($method = $AUTOLOAD) =~ s/.*:://;
 
-	# ignore destructor
-	$method eq 'DESTROY' && return;
+    # ignore destructor
+    $method eq 'DESTROY' && return;
 
-	# delegate method call to AppConfig::State object in $self->{ STATE } 
-	$self->{ STATE }->$method(@_);
+    # delegate method call to AppConfig::State object in $self->{ STATE } 
+    $self->{ STATE }->$method(@_);
 }
 
 1;
@@ -262,13 +225,13 @@ AppConfig - Perl5 module for reading configuration files and parsing command lin
     $config->file($file);
     
     # parse command line options
-    $config->args(\@args);	# default to \@ARGV
+    $config->args(\@args);      # default to \@ARGV
     
     # advanced command line options with Getopt::Long
-    $config->getopt(\@args);	# default to \@ARGV
+    $config->getopt(\@args);    # default to \@ARGV
     
     # parse CGI parameters (GET method)
-    $config->cgi($query);	# default to $ENV{ QUERY_STRING }
+    $config->cgi($query);       # default to $ENV{ QUERY_STRING }
 
 =head1 OVERVIEW
 
@@ -455,13 +418,13 @@ The first (optional) parameter may be a reference to a hash array
 containing configuration information.  
 
     my $config = AppConfig->new( {
-	    CASE   => 1,
-	    ERROR  => \&my_error,
-	    GLOBAL => { 
-		    DEFAULT  => "<unset>", 
-		    ARGCOUNT => ARGCOUNT_ONE,
-		},
-	} );
+            CASE   => 1,
+            ERROR  => \&my_error,
+            GLOBAL => { 
+                    DEFAULT  => "<unset>", 
+                    ARGCOUNT => ARGCOUNT_ONE,
+                },
+        } );
 
 See L<AppConfig::State> for full details of the configuration options
 available.  These are, in brief:
@@ -531,9 +494,9 @@ reference to a hash array may also be passed to specify configuration
 information for the variable:
 
     $config->define("foo", {
-	    DEFAULT   => 99,
-	    ALIAS     => 'metavar1',
-	});
+            DEFAULT   => 99,
+            ALIAS     => 'metavar1',
+        });
 
 Configuration items specified in the GLOBAL option to the module 
 constructor are applied by default when variables are created.  e.g.
@@ -599,11 +562,13 @@ ARGCOUNT_LIST, C</%/> = ARGCOUNT_HASH, C</[=:].*/> = ARGCOUNT_ONE)
 =item EXPAND
 
 Specifies which variable expansion policies should be used when parsing 
-configuration files.  Constants in C<:expand> tag set define EXPAND_NONE
-- no expansion (default), EXPAND_VAR - expand C<$var> or C<$(var)> as 
-other AppConfig variables, EXPAND_UID - expand C<~uid> as user's home 
-directory, EXPAND_ENV - expand C<${var}> as environment variable,
-EXPAND_ALL - do all expansions.  May be logically or'd.
+configuration files.  Constants in C<:expand> tag set define:
+
+    EXPAND_NONE - no expansion (default) 
+    EXPAND_VAR  - expand C<$var> or C<$(var)> as other variables
+    EXPAND_UID  - expand C<~> and C<~uid> as user's home directory 
+    EXPAND_ENV - expand C<${var}> as environment variable
+    EXPAND_ALL - do all expansions. 
 
 =item VALIDATE
 
@@ -645,33 +610,33 @@ equivalent full specifications:
     $config->define("foo|bar|baz!");
     
     $config->define(
-	    "foo" => { 
-		ALIAS    => "bar|baz", 
-		ARGCOUNT => ARGCOUNT_NONE,
-	    });
+            "foo" => { 
+                ALIAS    => "bar|baz", 
+                ARGCOUNT => ARGCOUNT_NONE,
+            });
     
     $config->define("name=s");
     
     $config->define(
-	    "name" => { 
-		ARGCOUNT => ARGCOUNT_ONE,
-	    });
+            "name" => { 
+                ARGCOUNT => ARGCOUNT_ONE,
+            });
     
     $config->define("file|filelist|f=s@");
     
     $config->define(
-	    "file" => { 
-		ALIAS    => "filelist|f", 
-		ARGCOUNT => ARGCOUNT_LIST,
-	    });
+            "file" => { 
+                ALIAS    => "filelist|f", 
+                ARGCOUNT => ARGCOUNT_LIST,
+            });
     
     $config->define("user|u=s%");
     
     $config->define(
-	    "user" => { 
-		ALIAS    => "u", 
-		ARGCOUNT => ARGCOUNT_HASH,
-	    });
+            "user" => { 
+                ALIAS    => "u", 
+                ARGCOUNT => ARGCOUNT_HASH,
+            });
 
 Additional configuration options may be specified by hash reference, as per 
 normal.  The compact definition format will override any configuration 
@@ -780,8 +745,8 @@ a '\'.
     # this is a comment
     callsign = alpha bravo camel delta echo foxtrot golf hipowls \
                india juliet kilo llama mike november oscar papa  \
-	       quebec romeo sierra tango umbrella victor whiskey \
-	       x-ray yankee zebra
+               quebec romeo sierra tango umbrella victor whiskey \
+               x-ray yankee zebra
 
 Variables that are simple flags and do not expect an argument (ARGCOUNT = 
 ARGCOUNT_NONE) can be specified without any value.  They will be set with 
@@ -832,7 +797,7 @@ A reference to the hash is returned when the variable is requested.
 
     my $aliases = $config->alias();
     foreach my $k (keys %$aliases) {
-	print "$k => $aliases->{ $k }\n";
+        print "$k => $aliases->{ $k }\n";
     }
 
 The '-' prefix can be used to reset a variable to its default value and
@@ -988,9 +953,9 @@ equals sign:
 
     http://www.here.com/cgi-bin/myscript?foo=bar&baz=qux&verbose
 
-	# $config->foo('bar');
-	# $config->baz('qux');
-	# $config->verbose(1);
+        # $config->foo('bar');
+        # $config->baz('qux');
+        # $config->verbose(1);
 
 Certain values specified in a URL must be escaped in the appropriate 
 manner (see CGI specifications at http://www.w3c.org/ for full details).  
@@ -1005,7 +970,7 @@ Please be considerate of the security implications of providing writeable
 access to script variables via CGI.
 
     http://rebel.alliance.com/cgi-bin/...
-	.../send_report?file=%2Fetc%2Fpasswd&email=darth%40empire.com
+        .../send_report?file=%2Fetc%2Fpasswd&email=darth%40empire.com
 
 To avoid any accidental or malicious changing of "private" variables, 
 define only the "public" variables before calling the cgi() (or any 
@@ -1013,10 +978,10 @@ other) method.  Further variables can subequently be defined which
 can not be influenced by the CGI parameters.
 
     $config->define('verbose', 'debug')
-    $config->cgi();		# can only set verbose and debug
+    $config->cgi();             # can only set verbose and debug
 
     $config->define('email', 'file');
-    $config->file($cfgfile);	# can set verbose, debug, email + file
+    $config->file($cfgfile);    # can set verbose, debug, email + file
 
 
 =head1 CONSTANT DEFINITIONS
@@ -1069,13 +1034,9 @@ With contributions from Dave Viner, Ijon Tichy, Axel Gerstmair and
 many others whose names have been lost to the sands of time (reminders
 welcome).
 
-=head1 REVISION
-
-Revision $Revision: 1.7 $ distributed as part of AppConfig 1.56.
-
 =head1 COPYRIGHT
 
-Copyright (C) 1997-2004 Andy Wardley.  All Rights Reserved.
+Copyright (C) 1997-2007 Andy Wardley.  All Rights Reserved.
 
 Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 

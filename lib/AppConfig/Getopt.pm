@@ -1,5 +1,3 @@
-package AppConfig::Getopt;
-
 #============================================================================
 #
 # AppConfig::Getopt.pm
@@ -14,22 +12,18 @@ package AppConfig::Getopt;
 # 
 # Written by Andy Wardley <abw@wardley.org>
 #
-# Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+# Copyright (C) 1997-2007 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
-#
-# $Id: Getopt.pm,v 1.60 2003/04/29 10:43:21 abw Exp $
 #
 #============================================================================
 
-require 5.005;
+package AppConfig::Getopt;
+use strict;
+use warnings;
 use AppConfig::State;
 use Getopt::Long 2.17;
-use strict;
+our $VERSION = '1.65';
 
-use vars qw( $VERSION );
-BEGIN {
-	$VERSION = '1.64';
-}
 
 #------------------------------------------------------------------------
 # new($state, \@args)
@@ -46,17 +40,15 @@ BEGIN {
 sub new {
     my $class = shift;
     my $state = shift;
-
-    
     my $self = {
         STATE => $state,
    };
 
     bless $self, $class;
-	
+        
     # call parse() to parse any arg list passed 
     $self->parse(@_)
-	if @_;
+        if @_;
 
     return $self;
 }
@@ -80,12 +72,12 @@ sub parse {
 
     # we trap $SIG{__WARN__} errors and patch them into AppConfig::State
     local $SIG{__WARN__} = sub {
-	my $msg = shift;
+        my $msg = shift;
 
-	# AppConfig::State doesn't expect CR terminated error messages
-	# and it uses printf, so we protect any embedded '%' chars 
-	chomp($msg);
-	$state->_error("%s", $msg);
+        # AppConfig::State doesn't expect CR terminated error messages
+        # and it uses printf, so we protect any embedded '%' chars 
+        chomp($msg);
+        $state->_error("%s", $msg);
     };
     
     # slurp all config items into @config
@@ -102,25 +94,25 @@ sub parse {
 
     # we enclose in an eval block because constructor may die()
     eval {
-	# configure Getopt::Long
-	Getopt::Long::Configure(@config);
+        # configure Getopt::Long
+        Getopt::Long::Configure(@config);
 
-	# construct options list from AppConfig::State variables
-	my @opts = $self->{ STATE   }->_getopt_state();
+        # construct options list from AppConfig::State variables
+        my @opts = $self->{ STATE   }->_getopt_state();
 
-	# DEBUG
-	if ($state->_debug()) {
-	    print STDERR "Calling GetOptions(@opts)\n";
-	    print STDERR "\@ARGV = (@ARGV)\n";
-	};
+        # DEBUG
+        if ($state->_debug()) {
+            print STDERR "Calling GetOptions(@opts)\n";
+            print STDERR "\@ARGV = (@ARGV)\n";
+        };
 
-	# call GetOptions() with specifications constructed from the state
-	$getopt = GetOptions(@opts);
+        # call GetOptions() with specifications constructed from the state
+        $getopt = GetOptions(@opts);
     };
     if ($@) {
-	chomp($@);
-	$state->_error("%s", $@);
-	return 0;
+        chomp($@);
+        $state->_error("%s", $@);
+        return 0;
     }
 
     # udpdate any args reference passed to include only that which is left 
@@ -153,24 +145,24 @@ sub _getopt_state {
     my $linkage = sub { $self->set(@_) };
 
     foreach $var (keys %{ $self->{ VARIABLE } }) {
-	$spec  = join('|', $var, @{ $self->{ ALIASES }->{ $var } || [ ] });
+        $spec  = join('|', $var, @{ $self->{ ALIASES }->{ $var } || [ ] });
 
-	# an ARGS value is used, if specified
-	unless (defined ($args = $self->{ ARGS }->{ $var })) {
-	    # otherwise, construct a basic one from ARGCOUNT
-	    ARGCOUNT: {
-		last ARGCOUNT unless 
-		    defined ($argcount = $self->{ ARGCOUNT }->{ $var });
+        # an ARGS value is used, if specified
+        unless (defined ($args = $self->{ ARGS }->{ $var })) {
+            # otherwise, construct a basic one from ARGCOUNT
+            ARGCOUNT: {
+                last ARGCOUNT unless 
+                    defined ($argcount = $self->{ ARGCOUNT }->{ $var });
 
-		$args = "=s",  last ARGCOUNT if $argcount eq ARGCOUNT_ONE;
-		$args = "=s@", last ARGCOUNT if $argcount eq ARGCOUNT_LIST;
-		$args = "=s%", last ARGCOUNT if $argcount eq ARGCOUNT_HASH;
-		$args = "!";
-	    }
-	}
-	$spec .= $args if defined $args;
+                $args = "=s",  last ARGCOUNT if $argcount eq ARGCOUNT_ONE;
+                $args = "=s@", last ARGCOUNT if $argcount eq ARGCOUNT_LIST;
+                $args = "=s%", last ARGCOUNT if $argcount eq ARGCOUNT_HASH;
+                $args = "!";
+            }
+        }
+        $spec .= $args if defined $args;
 
-	push(@specs, $spec, $linkage);
+        push(@specs, $spec, $linkage);
     }
 
     return @specs;
@@ -256,13 +248,9 @@ module via the getopt() method.
 
 Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
-=head1 REVISION
-
-$Revision: 1.60 $
-
 =head1 COPYRIGHT
 
-Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+Copyright (C) 1997-2007 Andy Wardley.  All Rights Reserved.
 
 Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 

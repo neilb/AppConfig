@@ -1,5 +1,3 @@
-package AppConfig::Args;
-
 #============================================================================
 #
 # AppConfig::Args.pm
@@ -9,23 +7,15 @@ package AppConfig::Args;
 #
 # Written by Andy Wardley <abw@wardley.org>
 #
-# Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+# Copyright (C) 1997-2007 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
-#
-# $Id: Args.pm,v 1.60 2003/04/29 10:42:39 abw Exp $
-#
 #============================================================================
 
-require 5.004;
-
+package AppConfig::Args;
 use strict;
-
+use warnings;
 use AppConfig::State;
-
-use vars qw( $VERSION );
-BEGIN {
-	$VERSION = '1.64';
-}
+our $VERSION = '1.65';
 
 
 #------------------------------------------------------------------------
@@ -47,15 +37,15 @@ sub new {
 
     my $self = {
         STATE    => $state,                # AppConfig::State ref
-	DEBUG    => $state->_debug(),      # store local copy of debug
-	PEDANTIC => $state->_pedantic,     # and pedantic flags
+        DEBUG    => $state->_debug(),      # store local copy of debug
+        PEDANTIC => $state->_pedantic,     # and pedantic flags
     };
 
     bless $self, $class;
-	
+        
     # call parse() to parse any arg list passed 
     $self->parse(shift)
-	if @_;
+        if @_;
 
     return $self;
 }
@@ -86,54 +76,52 @@ sub parse {
     # take a local copy of the state to avoid much hash dereferencing
     my ($state, $debug, $pedantic) = @$self{ qw( STATE DEBUG PEDANTIC ) };
 
-
-
     # loop around arguments
     ARG: while (@$argv && $argv->[0] =~ /^-/) {
-	$arg = shift(@$argv);
+        $arg = shift(@$argv);
 
-	# '--' indicates the end of the options
-	last if $arg eq '--';
+        # '--' indicates the end of the options
+        last if $arg eq '--';
 
-	# strip leading '-';
-	($variable = $arg) =~ s/^-(-)?//;
+        # strip leading '-';
+        ($variable = $arg) =~ s/^-(-)?//;
 
-	# test for '--' prefix and push back any '=value' item
-	if (defined $1) {
-	    ($variable, $value) = split(/=/, $variable);
-	    unshift(@$argv, $value) if defined $value;
-	}
+        # test for '--' prefix and push back any '=value' item
+        if (defined $1) {
+            ($variable, $value) = split(/=/, $variable);
+            unshift(@$argv, $value) if defined $value;
+        }
 
-	# check the variable exists
-	if ($state->_exists($variable)) {
+        # check the variable exists
+        if ($state->_exists($variable)) {
 
-	    # see if it expects any mandatory arguments
-	    $nargs = $state->_argcount($variable);
-	    if ($nargs) {
-		# check there's another arg and it's not another '-opt'
-		if(defined($argv->[0])) {
-		    $value = shift(@$argv);
-		}
-		else {
-		    $state->_error("$arg expects an argument");
-		    $warnings++;
-		    last ARG if $pedantic;
-		    next;
-		}
-	    }
-	    else {
-		# set a value of 1 if option doesn't expect an argument
-		$value = 1;
-	    }
+            # see if it expects any mandatory arguments
+            $nargs = $state->_argcount($variable);
+            if ($nargs) {
+                # check there's another arg and it's not another '-opt'
+                if(defined($argv->[0])) {
+                    $value = shift(@$argv);
+                }
+                else {
+                    $state->_error("$arg expects an argument");
+                    $warnings++;
+                    last ARG if $pedantic;
+                    next;
+                }
+            }
+            else {
+                # set a value of 1 if option doesn't expect an argument
+                $value = 1;
+            }
 
-	    # set the variable with the new value
-	    $state->set($variable, $value);
-	}
-	else {
-	    $state->_error("$arg: invalid option");
-	    $warnings++;
-	    last ARG if $pedantic;
-	}
+            # set the variable with the new value
+            $state->set($variable, $value);
+        }
+        else {
+            $state->_error("$arg: invalid option");
+            $warnings++;
+            last ARG if $pedantic;
+        }
     }
 
     # return status
@@ -233,13 +221,9 @@ AppConfig::Getopt) is highly recommended.
 
 Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
-=head1 REVISION
-
-$Revision: 1.60 $
-
 =head1 COPYRIGHT
 
-Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+Copyright (C) 1997-2007 Andy Wardley.  All Rights Reserved.
 
 Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 

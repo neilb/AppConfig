@@ -1,5 +1,3 @@
-package AppConfig::Sys;
-
 #============================================================================
 #
 # AppConfig::Sys.pm
@@ -16,16 +14,14 @@ package AppConfig::Sys;
 #
 #============================================================================
 
-require 5.004;
-
+package AppConfig::Sys;
 use strict;
-use vars qw( $AUTOLOAD $OS %CAN %METHOD);
+use warnings;
 use POSIX qw( getpwnam getpwuid );
 
-use vars qw( $VERSION );
-BEGIN {
-	$VERSION = '1.63';
-}
+our $VERSION = '1.65';
+our ($AUTOLOAD, $OS, %CAN, %METHOD);
+
 
 BEGIN {
     # define the methods that may be available
@@ -292,13 +288,9 @@ determine if this function is available.
 
 Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
-=head1 REVISION
-
-$Revision: 1.61 $
-
 =head1 COPYRIGHT
 
-Copyright (C) 1997-2004 Andy Wardley.  All Rights Reserved.
+Copyright (C) 1997-2007 Andy Wardley.  All Rights Reserved.
 
 Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 

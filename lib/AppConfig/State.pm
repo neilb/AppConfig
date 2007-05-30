@@ -1,5 +1,3 @@
-package AppConfig::State;
-
 #============================================================================
 #
 # AppConfig::State.pm
@@ -11,10 +9,8 @@ package AppConfig::State;
 #
 # Written by Andy Wardley <abw@wardley.org>
 #
-# Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+# Copyright (C) 1997-2007 Andy Wardley.  All Rights Reserved.
 # Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
-#
-# $Id: State.pm,v 1.61 2004/02/04 10:11:23 abw Exp $
 #
 #----------------------------------------------------------------------------
 #
@@ -40,18 +36,16 @@ package AppConfig::State;
 #
 #============================================================================
 
-require 5.004;
-
+package AppConfig::State;
 use strict;
+use warnings;
 
-use vars qw( $VERSION $DEBUG $AUTOLOAD );
-BEGIN {
-	$VERSION = '1.64';
-	$DEBUG   = 0;
-}
+our $VERSION = '1.65';
+our $DEBUG   = 0;
+our $AUTOLOAD;
 
 # need access to AppConfig::ARGCOUNT_*
-use AppConfig qw(:argcount);
+use AppConfig ':argcount';
 
 # internal per-variable hashes that AUTOLOAD should provide access to
 my %METHVARS;
@@ -103,7 +97,7 @@ sub new {
     };
 
     bless $self, $class;
-	
+        
     # configure if first param is a config hash ref
     $self->_configure(shift)
         if ref($_[0]) eq 'HASH';
@@ -233,13 +227,13 @@ sub define {
             $self->_error("$opt is not a valid configuration item");
         }
         
-    	# set variable to default value
+        # set variable to default value
         $self->_default($var);
         
         # DEBUG: dump new variable definition
         if ($DEBUG) {
             print STDERR "Variable defined:\n";
-    	    $self->_dump_var($var);
+            $self->_dump_var($var);
         }
     }
 }
@@ -271,10 +265,10 @@ sub get {
 
     # DEBUG
     print STDERR "$self->get($variable) => ", 
-	   defined $self->{ VARIABLE }->{ $variable }
-		  ? $self->{ VARIABLE }->{ $variable }
-		  : "<undef>",
-	  "\n"
+           defined $self->{ VARIABLE }->{ $variable }
+                  ? $self->{ VARIABLE }->{ $variable }
+                  : "<undef>",
+          "\n"
           if $DEBUG;
 
     # return variable value, possibly negated if the name was "no<var>"
@@ -364,7 +358,7 @@ sub set {
 
     # call any ACTION function bound to this variable
     return &{ $self->{ ACTION }->{ $variable } }($self, $variable, $value)
-    	if (exists($self->{ ACTION }->{ $variable }));
+        if (exists($self->{ ACTION }->{ $variable }));
 
     # ...or just return 1 (ok)
     return 1;
@@ -442,7 +436,7 @@ sub AUTOLOAD {
     # a leading underscore_
     if (($attrib = $variable) =~ s/_//g) {
         $attrib = uc $attrib;
-	
+        
         if (exists $METHFLAGS{ $attrib }) {
             return $self->{ $attrib };
         }
@@ -453,9 +447,9 @@ sub AUTOLOAD {
             $variable = $self->_varname($variable);
             
             # check we've got a valid variable
-#	    $self->_error("$variable: no such variable or method"), 
-#		    return undef
-#		unless exists($self->{ VARIABLE }->{ $variable });
+#           $self->_error("$variable: no such variable or method"), 
+#                   return undef
+#               unless exists($self->{ VARIABLE }->{ $variable });
             
             # return attribute
             return $self->{ $attrib }->{ $variable };
@@ -510,7 +504,6 @@ sub _configure {
             next;
         };
             
-	
         # CASE, CREATE and PEDANTIC are stored as they are
         $opt =~ /^CASE|CREATE|PEDANTIC$/i && do {
             $self->{ uc $opt } = $cfg->{ $opt };
@@ -566,7 +559,7 @@ sub _varname {
 
     # get the actual name if this is an alias
     $variable = $self->{ ALIAS }->{ $variable }
-	if (exists($self->{ ALIAS }->{ $variable }));
+        if (exists($self->{ ALIAS }->{ $variable }));
 
     # if the variable doesn't exist, we can try to chop off a leading 
     # "no" and see if the remainder matches an ARGCOUNT_ZERO variable
@@ -613,7 +606,7 @@ sub _default {
         
         if ($argcount == AppConfig::ARGCOUNT_NONE) {
             return $self->{ VARIABLE }->{ $variable } 
-		    = $self->{ DEFAULT }->{ $variable } || 0;
+                 = $self->{ DEFAULT }->{ $variable } || 0;
         }
         elsif ($argcount == AppConfig::ARGCOUNT_LIST) {
             my $deflist = $self->{ DEFAULT }->{ $variable };
@@ -628,7 +621,7 @@ sub _default {
         }
         else {
             return $self->{ VARIABLE }->{ $variable } 
-		    = $self->{ DEFAULT }->{ $variable };
+                 = $self->{ DEFAULT }->{ $variable };
         }
     }
     else {
@@ -688,8 +681,8 @@ sub _validate {
 
     # CODE ref
     ref($validator) eq 'CODE' && do {
-    	# run the validation function and return the result
-       	return &$validator($variable, $value);
+        # run the validation function and return the result
+        return &$validator($variable, $value);
     };
 
     # non-ref (i.e. scalar)
@@ -811,31 +804,31 @@ sub _dump_var {
     # $var may be an alias, so we resolve the real variable name
     my $real = $self->_varname($var);
     if ($var eq $real) {
-    	print STDERR "$var\n";
+        print STDERR "$var\n";
     }
     else {
-    	print STDERR "$real  ('$var' is an alias)\n";
+        print STDERR "$real  ('$var' is an alias)\n";
         $var = $real;
     }
 
     # for some bizarre reason, the variable VALUE is stored in VARIABLE
     # (it made sense at some point in time)
     printf STDERR "    VALUE        => %s\n", 
-		defined($self->{ VARIABLE }->{ $var }) 
-		    ? $self->{ VARIABLE }->{ $var } 
-		    : "<undef>";
+                defined($self->{ VARIABLE }->{ $var }) 
+                    ? $self->{ VARIABLE }->{ $var } 
+                    : "<undef>";
 
     # the rest of the values can be read straight out of their hashes
     foreach my $param (qw( DEFAULT ARGCOUNT VALIDATE ACTION EXPAND )) {
-	printf STDERR "    %-12s => %s\n", $param, 
-		defined($self->{ $param }->{ $var }) 
-		    ? $self->{ $param }->{ $var } 
-		    : "<undef>";
+        printf STDERR "    %-12s => %s\n", $param, 
+                defined($self->{ $param }->{ $var }) 
+                    ? $self->{ $param }->{ $var } 
+                    : "<undef>";
     }
 
     # summarise all known aliases for this variable
     print STDERR "    ALIASES      => ", 
-	    join(", ", @{ $self->{ ALIASES }->{ $var } }), "\n"
+            join(", ", @{ $self->{ ALIASES }->{ $var } }), "\n"
             if defined $self->{ ALIASES }->{ $var };
 } 
 
@@ -852,14 +845,14 @@ sub _dump {
 
     print STDERR "=" x 71, "\n";
     print STDERR 
-	"Status of AppConfig::State (version $VERSION) object:\n\t$self\n";
+        "Status of AppConfig::State (version $VERSION) object:\n\t$self\n";
 
     
     print STDERR "- " x 36, "\nINTERNAL STATE:\n";
     foreach (qw( CREATE CASE PEDANTIC EHANDLER ERROR )) {
         printf STDERR "    %-12s => %s\n", $_, 
-		defined($self->{ $_ }) ? $self->{ $_ } : "<undef>";
-    }	    
+                defined($self->{ $_ }) ? $self->{ $_ } : "<undef>";
+    }       
 
     print STDERR "- " x 36, "\nVARIABLES:\n";
     foreach $var (keys %{ $self->{ VARIABLE } }) {
@@ -933,8 +926,8 @@ the object by passing a reference to a hash array containing
 configuration options:
 
     $state = AppConfig::State->new( {
-	CASE      => 1,
-	ERROR     => \&my_error,
+        CASE      => 1,
+        ERROR     => \&my_error,
     } );
 
 The new() constructor of the AppConfig module automatically passes all 
@@ -968,14 +961,14 @@ variable is created.  This can be used to specify configuration file
 blocks in which variables should be created, for example:
 
     $state = AppConfig::State->new( {
-	CREATE => '^define_',
+        CREATE => '^define_',
     } );
 
 In a config file:
 
     [define]
     name = fred           # define_name gets created automatically
-
+    
     [other]
     name = john           # other_name doesn't - warning raised
 
@@ -1028,11 +1021,11 @@ The GLOBAL option allows default values to be set for the DEFAULT, ARGCOUNT,
 EXPAND, VALIDATE and ACTION options for any subsequently defined variables.
 
     $state = AppConfig::State->new({
-	GLOBAL => {
-	    DEFAULT  => '<undef>',     # default value for new vars
-	    ARGCOUNT => 1,             # vars expect an argument
-	    ACTION   => \&my_set_var,  # callback when vars get set
-	}
+        GLOBAL => {
+            DEFAULT  => '<undef>',     # default value for new vars
+            ARGCOUNT => 1,             # vars expect an argument
+            ACTION   => \&my_set_var,  # callback when vars get set
+        }
     });
 
 Any attributes specified explicitly when a variable is defined will
@@ -1054,9 +1047,9 @@ reference to a hash array may also be passed to specify configuration
 information for the variable:
 
     $state->define("foo", {
-	    DEFAULT   => 99,
-	    ALIAS     => 'metavar1',
-	});
+            DEFAULT   => 99,
+            ALIAS     => 'metavar1',
+        });
 
 Any variable-wide GLOBAL values passed to the new() constructor in the 
 configuration hash will also be applied.  Values explicitly specified 
@@ -1072,8 +1065,8 @@ The following configuration options may be specified
 The DEFAULT value is used to initialise the variable.  
 
     $state->define("drink", {
-	    DEFAULT => 'coffee',
-	});
+            DEFAULT => 'coffee',
+        });
 
     print $state->drink();        # prints "coffee"
 
@@ -1084,18 +1077,21 @@ this variable.  A single alias should be specified as a string.  Multiple
 aliases can be specified as a reference to an array of alternatives or as 
 a string of names separated by vertical bars, '|'.  e.g.:
 
+    # either
     $state->define("name", {
-	    ALIAS  => 'person',
-	});
-or
-    $state->define("name", {
-	    ALIAS => [ 'person', 'user', 'uid' ],
-	});
-or
-    $state->define("name", {
-	    ALIAS => 'person|user|uid',
-	});
+            ALIAS  => 'person',
+        });
 
+    # or
+    $state->define("name", {
+            ALIAS => [ 'person', 'user', 'uid' ],
+        });
+    
+    # or
+    $state->define("name", {
+            ALIAS => 'person|user|uid',
+        });
+    
     $state->user('abw');     # equivalent to $state->name('abw');
 
 =item ARGCOUNT
@@ -1155,8 +1151,8 @@ See those two modules for more information on the format and meaning of
 these options.
 
     $state->define("name", {
-	    ARGS => "=i@",
-	});
+            ARGS => "=i@",
+        });
 
 =item EXPAND 
 
@@ -1194,6 +1190,9 @@ to the values of the relevant AppConfig::State variables.
 
 Indicates that '~' or '~uid' patterns in the string should be 
 expanded to the current users ($<), or specified user's home directory.
+In the first case, C<~> is expanded to the value of the C<HOME>
+environment variable.  In the second case, the C<getpwnam()> method
+is used if it is available on your system (which it isn't on Win32).
 
 =item EXPAND_ENV
 
@@ -1233,12 +1232,12 @@ above) then this value will be used as the default VALIDATE for each
 variable unless otherwise specified.
 
     $state->define("age", {
-    	    VALIDATE => '\d+',
-	});
+            VALIDATE => '\d+',
+        });
 
     $state->define("pin", {
-	    VALIDATE => \&check_pin,
-	});
+            VALIDATE => \&check_pin,
+        });
 
 =item ACTION
 
@@ -1256,11 +1255,11 @@ Example:
     $state->define("foo", { ACTION => \&my_notify });
 
     sub my_notify {
-	my $state = shift;
-	my $var   = shift;
-	my $val   = shift;
+        my $state = shift;
+        my $var   = shift;
+        my $val   = shift;
 
-	print "$variable set to $value";
+        print "$variable set to $value";
     }
 
     $state->foo(42);        # prints "foo set to 42"
@@ -1286,9 +1285,9 @@ after the variable name(s) and/or aliases.
 The following examples are equivalent:
 
     $state->define("foo", { 
-	    ALIAS => [ 'bar', 'baz' ],
-	    ARGS  => '=i',
-	});
+            ALIAS => [ 'bar', 'baz' ],
+            ARGS  => '=i',
+        });
 
     $state->define("foo|bar|baz=i");
 
@@ -1395,13 +1394,9 @@ debugging purposes.
 
 Andy Wardley, E<lt>abw@wardley.orgE<gt>
 
-=head1 REVISION
-
-$Revision: 1.61 $
-
 =head1 COPYRIGHT
 
-Copyright (C) 1997-2003 Andy Wardley.  All Rights Reserved.
+Copyright (C) 1997-2007 Andy Wardley.  All Rights Reserved.
 
 Copyright (C) 1997,1998 Canon Research Centre Europe Ltd.
 
