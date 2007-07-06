@@ -18,47 +18,30 @@
 
 use strict;
 use vars qw($loaded);
-
-BEGIN { 
-    $| = 1; 
-    print "1..9\n"; 
-}
-
-END {
-    ok(0) unless $loaded;
-}
-
-my $ok_count = 1;
-sub ok {
-    shift or print "not ";
-    print "ok $ok_count\n";
-    ++$ok_count;
-}
-
+use Test::More tests => 9;
 use AppConfig ':expand';
-$loaded = 1;
-ok(1);
+ok(1, 'loaded');
 
 
 #------------------------------------------------------------------------
 #2 - #5: test that the EXPAND_XXX constants got imported
 #
 
-ok( EXPAND_UID );
-ok( EXPAND_VAR );
-ok( EXPAND_ENV );
-ok( EXPAND_ALL == EXPAND_UID | EXPAND_VAR | EXPAND_ENV );
+ok( EXPAND_UID, 'EXPAND_UID' );
+ok( EXPAND_VAR, 'EXPAND_VAR' );
+ok( EXPAND_ENV, 'EXPAND_ENV' );
+ok( EXPAND_ALL == EXPAND_UID | EXPAND_VAR | EXPAND_ENV, 'EXPAND_ALL' );
 
 
 #------------------------------------------------------------------------
 #6 - #9: test that the EXPAND_XXX package vars are defined
 #
 
-ok( AppConfig::EXPAND_UID );
-ok( AppConfig::EXPAND_VAR );
-ok( AppConfig::EXPAND_ENV );
+ok( AppConfig::EXPAND_UID, 'EXPAND_UID' );
+ok( AppConfig::EXPAND_VAR, 'EXPAND_VAR' );
+ok( AppConfig::EXPAND_ENV, 'EXPAND_ENV' );
 ok( AppConfig::EXPAND_ALL == 
     AppConfig::EXPAND_UID 
   | AppConfig::EXPAND_VAR 
-  | AppConfig::EXPAND_ENV );
+  | AppConfig::EXPAND_ENV, 'EXPAND_ALL' );
 

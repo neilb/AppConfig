@@ -31,7 +31,6 @@ use Test::More tests => 43;
 
 use AppConfig qw(:expand :argcount);
 use AppConfig::File;
-use File::HomeDir;
 ok(1);
 
 
@@ -40,47 +39,47 @@ ok(1);
 #------------------------------------------------------------------------
 
 my $state = AppConfig::State->new({
-	    CREATE   => '^(?:define|here)_',
-	    GLOBAL => { 
-		EXPAND   => EXPAND_ALL,
-		ARGCOUNT => ARGCOUNT_ONE,
-	    },
-	},
-	'html', 
-	'same',
-	'split',
-	'title', 'ident',
-	'cash'    => { EXPAND => EXPAND_NONE },     # ignore '$' in cash
-	'hdir'    => { EXPAND => EXPAND_VAR  },     # expand only $vars
-	'verbose' => { ARGCOUNT => ARGCOUNT_NONE }, # simple flags..
-	'cruft'   => { 
-	    ARGCOUNT => ARGCOUNT_NONE,
-	    DEFAULT  => 1,
-	},
-	'debug'   => {
-	    ARGCOUNT => ARGCOUNT_NONE,
-	    DEFAULT  => 1,
-	}, 
-	'chance'   => {
-	    ARGCOUNT => ARGCOUNT_NONE,
-	    DEFAULT  => 1,
-	}, 
-	'hope'   => {
-	    ARGCOUNT => ARGCOUNT_NONE,
-	    DEFAULT  => 1,
-	}, 
-	'drink'  => {
-	    ARGCOUNT => ARGCOUNT_LIST,
-	},
-	'name'  => {
-	    ARGCOUNT => ARGCOUNT_HASH,
-	},
-	'here_empty' => {
-	    ARGCOUNT => ARGCOUNT_NONE,
-	},
-	'here_hash' => {
-	    ARGCOUNT => ARGCOUNT_HASH,
-	},
+            CREATE   => '^(?:define|here)_',
+            GLOBAL => { 
+                EXPAND   => EXPAND_ALL,
+                ARGCOUNT => ARGCOUNT_ONE,
+            },
+        },
+        'html', 
+        'same',
+        'split',
+        'title', 'ident',
+        'cash'    => { EXPAND => EXPAND_NONE },     # ignore '$' in cash
+        'hdir'    => { EXPAND => EXPAND_VAR  },     # expand only $vars
+        'verbose' => { ARGCOUNT => ARGCOUNT_NONE }, # simple flags..
+        'cruft'   => { 
+            ARGCOUNT => ARGCOUNT_NONE,
+            DEFAULT  => 1,
+        },
+        'debug'   => {
+            ARGCOUNT => ARGCOUNT_NONE,
+            DEFAULT  => 1,
+        }, 
+        'chance'   => {
+            ARGCOUNT => ARGCOUNT_NONE,
+            DEFAULT  => 1,
+        }, 
+        'hope'   => {
+            ARGCOUNT => ARGCOUNT_NONE,
+            DEFAULT  => 1,
+        }, 
+        'drink'  => {
+            ARGCOUNT => ARGCOUNT_LIST,
+        },
+        'name'  => {
+            ARGCOUNT => ARGCOUNT_HASH,
+        },
+        'here_empty' => {
+            ARGCOUNT => ARGCOUNT_NONE,
+        },
+        'here_hash' => {
+            ARGCOUNT => ARGCOUNT_HASH,
+        },
     );
 
 # turn debugging on to trigger debugging in $cfgfile
@@ -107,16 +106,16 @@ ok( $state->html() eq 'public_html' );
 ok( $state->cash() eq 'I won $200!' );
 
 SKIP: {
-	skip("User does not have a home directory", 2) unless defined File::HomeDir->my_home;
+        skip("User does not have a home directory", 2) unless defined $ENV{HOME};
 
-	#  hdir expands variables ($html) but not uids (~)
-	ok( $state->hdir() eq '~/public_html' );
+        #  hdir expands variables ($html) but not uids (~)
+        ok( $state->hdir() eq '~/public_html' );
 
-	# see if "[~/$html]" matches "[${HOME}/$html]".  It may fail if your
-	#   platform doesn't provide getpwuid().  See AppConfig::Sys for details.
-	my ($one, $two) = 
-    	$state->same() =~ / \[ ( [^\]]+ ) \] \s+=>\s+ \[ ( [^\]]+ ) \]/gx;
-	is( $one, $two, 'one is two' );
+        # see if "[~/$html]" matches "[${HOME}/$html]".  It may fail if your
+        #   platform doesn't provide getpwuid().  See AppConfig::Sys for details.
+        my ($one, $two) = 
+        $state->same() =~ / \[ ( [^\]]+ ) \] \s+=>\s+ \[ ( [^\]]+ ) \]/gx;
+        is( $one, $two, 'one is two' );
 }
 
 # test that "split" came out the same as "same"
@@ -199,10 +198,10 @@ HERE
 is( $state->here_quote(), '<<NOT_A_HERE_DOC_if_in_quotes', 'heredoc in quotes');
 is( $state->here_eof(), "parse() reads to eof if the boundary string is absent.\n", 'heredoc with EOF');
 is_deeply( $state->here_hash(), {
-	'key1' => 'value 1',
-	'key2' => 'value 2',
-	'key3' => "multi-line\nvalue 3",
-	'"key 4"' => "<<AA\n  recursive here-doc not supported.\nAA",
+        'key1' => 'value 1',
+        'key2' => 'value 2',
+        'key3' => "multi-line\nvalue 3",
+        '"key 4"' => "<<AA\n  recursive here-doc not supported.\nAA",
 }, 'hash with here-doc values');
 
 

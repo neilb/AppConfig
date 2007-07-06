@@ -1,4 +1,21 @@
 #========================================================================
+# Version 1.66  Date: 2007/07/06 (Andy Wardley)
+#========================================================================
+
+* Removed File::HomeDir from the test scripts.
+
+#========================================================================
+# Version 1.65  Date: 2007/05/30 (Andy Wardley)
+#========================================================================
+
+* Changed meaning of '~' interpolation to mean $ENV{HOME} rather than
+  $ENV{HOME} or wherever File::HomeDir thinks your home directory is.
+  This allows us to remove the dependency on File::HomeDir which was 
+  causing insallation problems (particularly on Mac OSX), and led to 
+  a long dependency chain for AppConfig and other modules that rely on
+  it (like Template Toolkit).
+
+#========================================================================
 # Version 1.64  Date: 2007/01/02 (Adam Kennedy)
 #========================================================================
 

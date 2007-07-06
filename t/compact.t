@@ -53,34 +53,34 @@ my $notarg  = "This is not an arg";
 my $file1   = 'File_Number_One';
 my $file2   = 'File_Number_Two';
 my %define  = (
-	'first' => 'first hash value',
-	'next'  => 'next hash value',
-	'last'  => 'last hash value',
+        'first' => 'first hash value',
+        'next'  => 'next hash value',
+        'last'  => 'last hash value',
     );
 
 my $config = AppConfig->new({
-	ERROR    => sub { 
-		my $format = "ERR: " . shift() . "\n"; 
-		printf STDERR $format, @_;
-	    },
-	GLOBAL => { 
-	    DEFAULT  => $default,
-	    ARGCOUNT => ARGCOUNT_ONE,
-	} 
+        ERROR    => sub { 
+                my $format = "ERR: " . shift() . "\n"; 
+                printf STDERR $format, @_;
+            },
+        GLOBAL => { 
+            DEFAULT  => $default,
+            ARGCOUNT => ARGCOUNT_ONE,
+        } 
     },
     'verbose|v!',
     'filelist|file|f=s@',
     'user|u|name|uid=s',
     'define|defvar' => { 
-	ARGS => "=s%" 
+        ARGS => "=s%" 
     },
     'multi' => { 
-	ARGCOUNT => ARGCOUNT_LIST,
+        ARGCOUNT => ARGCOUNT_LIST,
     },
     'age|a' => {
-	VALIDATE => '\d+',
-	                               # NOTE: Getopt::Long args 
-				       # constructed automatically
+        VALIDATE => '\d+',
+                                       # NOTE: Getopt::Long args 
+                                       # constructed automatically
     });
 
 #2: test the AppConfig got instantiated correctly
@@ -89,12 +89,12 @@ ok( defined $config );
 my @defargs = map { ( "--define", "\"$_=$define{ $_ }\"" ) } keys %define;
 
 my @args = ('-v', 
-	'-u', $user, 
-	'--age', $age, 
-	'--file', $file1, '-f', $file2, 
-	@defargs,
-	'-multi', 1, '--multi', 2, '-m', 3,
-	$notarg);
+        '-u', $user, 
+        '--age', $age, 
+        '--file', $file1, '-f', $file2, 
+        @defargs,
+        '-multi', 1, '--multi', 2, '-m', 3,
+        $notarg);
 
 #3: process the args
 # $config->_debug(1);

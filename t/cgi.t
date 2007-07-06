@@ -52,23 +52,23 @@ my $age     = 42;
 my $notarg  = "This is not an arg";
 
 my $state = AppConfig::State->new({
-	GLOBAL => { 
-	    DEFAULT  => $default,
-	    ARGCOUNT => ARGCOUNT_ONE,
-	} 
+        GLOBAL => { 
+            DEFAULT  => $default,
+            ARGCOUNT => ARGCOUNT_ONE,
+        } 
     },
     'verbose' => {
-       	DEFAULT  => 0,
-	ARGCOUNT => ARGCOUNT_NONE,
-	ALIAS    => 'v',
+        DEFAULT  => 0,
+        ARGCOUNT => ARGCOUNT_NONE,
+        ALIAS    => 'v',
     },
     'user' => {
-	ALIAS    => 'u|name|uid',
-	DEFAULT  => $anon,
+        ALIAS    => 'u|name|uid',
+        DEFAULT  => $anon,
     },
     'age' => {
-	ALIAS    => 'a',
-	VALIDATE => '\d+',
+        ALIAS    => 'a',
+        VALIDATE => '\d+',
     });
 
 my $cfgcgi = AppConfig::CGI->new($state);

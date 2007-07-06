@@ -19,8 +19,7 @@ my %config = (
     'dist' => { 
         'COMPRESS' => 'gzip', 
         'SUFFIX'   => 'gz',
-        'PREOP'    => 'cp docs/header README; \
-                       pod2text lib/AppConfig.pm >> README',
+        'PREOP'    => 'pod2text lib/AppConfig.pm > README',
     },
 );
 

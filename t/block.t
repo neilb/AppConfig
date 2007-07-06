@@ -20,7 +20,6 @@ use strict;
 use vars qw($loaded);
 use AppConfig qw(:expand :argcount);
 use AppConfig::File;
-use File::HomeDir;
 use Test::More tests => 7;
 
 
@@ -28,20 +27,20 @@ use Test::More tests => 7;
 # create new AppConfig::State and AppConfig::File objects
 
 my $state = AppConfig::State->new(
-	{
-		GLOBAL => {
-			ARGCOUNT => ARGCOUNT_ONE,
-		},
-	},
-	'foo',
-	'bar',
-	'dir_home', {
-		EXPAND => EXPAND_ENV,
-	},
-	'dir_html', {
-		EXPAND => EXPAND_ENV,
-	},
-	);
+        {
+                GLOBAL => {
+                        ARGCOUNT => ARGCOUNT_ONE,
+                },
+        },
+        'foo',
+        'bar',
+        'dir_home', {
+                EXPAND => EXPAND_ENV,
+        },
+        'dir_html', {
+                EXPAND => EXPAND_ENV,
+        },
+        );
 
 # $state->_debug(1);
 
@@ -50,25 +49,23 @@ my $cfgfile = AppConfig::File->new($state);
 # $state->_debug(0);
 
 #2 - #3: test that state and cfgfile got instantiated correctly
-ok( defined $state   );
-ok( defined $cfgfile );
+ok( defined $state, 'defined state' );
+ok( defined $cfgfile, 'defined cfgfile' );
 
 #4: read the config file (from __DATA__)
-ok( $cfgfile->parse(\*DATA) );
+ok( $cfgfile->parse(\*DATA), 'parsed config' );
 
 
 #5 - #6: test simple variable values got set correctly
-ok( $state->foo eq 'This is foo' );
-ok( $state->bar eq 'This is bar' );
+ok( $state->foo eq 'This is foo', 'foo is set' );
+ok( $state->bar eq 'This is bar', 'bar is set' );
 
 #7 - #8: test [dir] block variables got set correctly
-my $env_home = defined $ENV{ HOME }
-	? $ENV{ HOME }
-	: File::HomeDir->my_home;
-ok( $state->dir_home eq  $env_home                   );
-ok( $state->dir_html eq ($env_home . '/public_html') );
-
-
+SKIP: {
+        skip 'No HOME environment variable set', 2 unless $ENV{ HOME };
+        ok( $state->dir_home eq  $ENV{HOME}, 'matched HOME');
+        ok( $state->dir_html eq ($ENV{HOME} . '/public_html'), 'matched HTML' );
+}
 
 
 

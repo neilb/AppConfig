@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-
 #========================================================================
 #
 # t/appconfig.t
@@ -49,24 +48,24 @@ my $anon    = "<anon>";
 my $noage   = "<unborn>";
 
 my $config = AppConfig->new({ 
-	GLOBAL => { 
-	    DEFAULT  => $default,
-	    ARGCOUNT => ARGCOUNT_ONE,
-	} 
+        GLOBAL => { 
+            DEFAULT  => $default,
+            ARGCOUNT => ARGCOUNT_ONE,
+        } 
     },
     'verbose', {
-       	DEFAULT  => 0,
-	ARGCOUNT => ARGCOUNT_NONE,
+        DEFAULT  => 0,
+        ARGCOUNT => ARGCOUNT_NONE,
     },
     'user', {
-	ALIAS    => 'name|uid',
-	DEFAULT  => $anon,
+        ALIAS    => 'name|uid',
+        DEFAULT  => $anon,
     });
 
 $config->define(
     'age', {
-	DEFAULT  => $noage,
-	VALIDATE => '\d+',
+        DEFAULT  => $noage,
+        VALIDATE => '\d+',
     });
 
    
