@@ -16,7 +16,7 @@ package AppConfig;
 use strict;
 use warnings;
 use base 'Exporter';
-our $VERSION = 1.66;
+our $VERSION = '1.66_01';
 
 # variable expansion constants
 use constant EXPAND_NONE   => 0;
