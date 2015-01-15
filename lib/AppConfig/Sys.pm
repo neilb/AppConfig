@@ -19,7 +19,7 @@ use strict;
 use warnings;
 use POSIX qw( getpwnam getpwuid );
 
-our $VERSION = '1.65';
+our $VERSION = '1.66_02';
 our ($AUTOLOAD, $OS, %CAN, %METHOD);
 
 
@@ -279,8 +279,6 @@ determine if this function is available.
 Calls the system function getpwuid() if available and returns the result.
 Returns undef if not available.  The can_getpwuid() method can be called to
 determine if this function is available.
-
-=item 
 
 =back
 

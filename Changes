@@ -1,5 +1,9 @@
 Revision history for Perl module AppConfig
 
+1.66_02 2015-01-15 NEILB
+    - Getting pod fails from CPAN Testers for various recent versions
+      of Perl. There was an empty =item.
+
 1.66_01 2015-01-10 NEILB
     - First dev release, to check that everything's ok.
     - ABW granted co-maint, so I could set up a github repo and do a

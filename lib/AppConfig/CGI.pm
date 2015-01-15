@@ -16,7 +16,7 @@ package AppConfig::CGI;
 use strict;
 use warnings;
 use AppConfig::State;
-our $VERSION = '1.65';
+our $VERSION = '1.66_02';
 
 
 #------------------------------------------------------------------------
