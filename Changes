@@ -1,5 +1,8 @@
 Revision history for Perl module AppConfig
 
+1.66_03 2015-01-16 NEILB
+    - More pod & whitespace cleanup
+
 1.66_02 2015-01-15 NEILB
     - Getting pod fails from CPAN Testers for various recent versions
       of Perl. There was an empty =item.

@@ -352,7 +352,7 @@ DESCRIPTION
             EXPAND_VAR  - expand C<$var> or C<$(var)> as other variables
             EXPAND_UID  - expand C<~> and C<~uid> as user's home directory 
             EXPAND_ENV - expand C<${var}> as environment variable
-            EXPAND_ALL - do all expansions. 
+            EXPAND_ALL - do all expansions.
 
     VALIDATE
         Regex which the intended variable value should match or code
@@ -438,7 +438,7 @@ DESCRIPTION
 
     is equivalent to
 
-        $config->verbose(1); 
+        $config->verbose(1);
 
     Note that AppConfig defines the following methods:
 

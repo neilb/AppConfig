@@ -257,7 +257,7 @@ sub parse {
                     print STDERR "$variable => $value (no expansion)\n"
                         if $debug;
                 }
-           
+
                 # set the variable, noting any failure from set()
                 unless ($state->set($variable, $value)) {
                     $warnings++;
@@ -273,7 +273,7 @@ sub parse {
 
     # restore original error handler
     $state->_ehandler($errhandler);
-    
+
     # return $warnings => 0, $success => 1
     return $warnings ? 0 : 1;
 }
@@ -524,7 +524,7 @@ AppConfig::File object is created and initialised using the
 AppConfig::File->new() method.  This returns a reference to a new 
 AppConfig::File object.  A reference to an AppConfig::State object 
 should be passed in as the first parameter:
-       
+
     my $state   = AppConfig::State->new();
     my $cfgfile = AppConfig::File->new($state);
 
@@ -649,7 +649,7 @@ style.
    # comments are treated as a normal text.
    The same applies to line continuation. \
    _bar_
-   
+
 Note that you cannot use HERE document as a key in a hash or a name 
 of a variable.
 
@@ -669,10 +669,10 @@ Three different expansion types may be applied:
 
     bin = ~/bin          # expand '~' to home dir if EXPAND_UID
     tmp = ~abw/tmp       # as above, but home dir for user 'abw'
-    
+
     perl = $bin/perl     # expand value of 'bin' variable if EXPAND_VAR
     ripl = $(bin)/ripl   # as above with explicit parens
-    
+
     home = ${HOME}       # expand HOME environment var if EXPAND_ENV
 
 See L<AppConfig::State> for more information on expanding variable values.

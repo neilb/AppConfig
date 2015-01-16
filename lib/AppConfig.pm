@@ -199,37 +199,37 @@ AppConfig - Perl5 module for reading configuration files and parsing command lin
 =head1 SYNOPSIS
 
     use AppConfig;
-    
+
     # create a new AppConfig object
     my $config = AppConfig->new( \%cfg );
-    
+
     # define a new variable
     $config->define( $varname => \%varopts );
-    
+
     # create/define combined
     my $config = AppConfig->new( \%cfg, 
         $varname => \%varopts,
         $varname => \%varopts,
         ...
     );
-    
+
     # set/get the value
     $config->set( $varname, $value );
     $config->get($varname);
-    
+
     # shortcut form
     $config->varname($value);
     $config->varname;
-    
+
     # read configuration file
     $config->file($file);
-    
+
     # parse command line options
     $config->args(\@args);      # default to \@ARGV
-    
+
     # advanced command line options with Getopt::Long
     $config->getopt(\@args);    # default to \@ARGV
-    
+
     # parse CGI parameters (GET method)
     $config->cgi($query);       # default to $ENV{ QUERY_STRING }
 
@@ -249,14 +249,14 @@ by its configuration when defined.
     verbose 
     nohelp
     debug = On
-    
+
     # single value
     home  = /home/abw/
-    
+
     # multiple list value
     file = /tmp/file1
     file = /tmp/file2
-    
+
     # multiple hash value
     book  camel = Programming Perl
     book  llama = Learning Perl
@@ -284,7 +284,7 @@ Configuration files may be arranged in blocks as per the style of Win32
     src  = ~/websrc/docs/$site
     lib  = ~/websrc/lib
     dest = ~/public_html/$site
-    
+
     [page]
     header = $lib/header
     footer = $lib/footer
@@ -296,7 +296,7 @@ text in a configuration file.
     line 1
     line 2
     FOOBAR
-    
+
     paths  exe  = "${PATH}:${HOME}/.bin"
     paths  link = <<'FOO'
     ${LD_LIBARRAY_PATH}:${HOME}/lib
@@ -331,9 +331,9 @@ manual page explains:
     CPAN stands for the Comprehensive Perl Archive Network.
     This is a globally replicated collection of all known Perl
     materials, including hundreds of unbundled modules.  
-    
+
     [...]
-    
+
     For an up-to-date listing of CPAN sites, see
     http://www.perl.com/perl/ or ftp://ftp.perl.com/perl/ .
 
@@ -404,7 +404,7 @@ AppConfig is implemented using object-oriented methods.  A
 new AppConfig object is created and initialised using the 
 new() method.  This returns a reference to a new AppConfig 
 object.
-       
+
     my $config = AppConfig->new();
 
 This will create and return a reference to a new AppConfig object.
@@ -470,7 +470,7 @@ AppConfig::State object:
 
     # create AppConfig
     my $config = AppConfig->new('foo', 'bar');
-    
+
     # methods get passed through to internal AppConfig::State
     $config->foo(100);
     $config->set('bar', 200);
@@ -507,19 +507,19 @@ constructor are applied by default when variables are created.  e.g.
             ARGCOUNT => ARGCOUNT_ONE,
         }
     } );
-    
+
     $config->define("foo");
     $config->define("bar", { ARGCOUNT => ARGCOUNT_NONE } );
 
 is equivalent to:
 
     my $config = AppConfig->new();
-    
+
     $config->define( "foo", {
         DEFAULT  => "<undef>",
         ARGCOUNT => ARGCOUNT_ONE,
     } );
-    
+
     $config->define( "bar", 
         DEFAULT  => "<undef>",
         ARGCOUNT => ARGCOUNT_NONE,
@@ -608,30 +608,30 @@ The following examples demonstrate use of the comapct format, with their
 equivalent full specifications:
 
     $config->define("foo|bar|baz!");
-    
+
     $config->define(
             "foo" => { 
                 ALIAS    => "bar|baz", 
                 ARGCOUNT => ARGCOUNT_NONE,
             });
-    
+
     $config->define("name=s");
-    
+
     $config->define(
             "name" => { 
                 ARGCOUNT => ARGCOUNT_ONE,
             });
-    
+
     $config->define("file|filelist|f=s@");
-    
+
     $config->define(
             "file" => { 
                 ALIAS    => "filelist|f", 
                 ARGCOUNT => ARGCOUNT_LIST,
             });
-    
+
     $config->define("user|u=s%");
-    
+
     $config->define(
             "user" => { 
                 ALIAS    => "u", 
@@ -817,10 +817,10 @@ Three different expansion types may be applied:
 
     bin = ~/bin          # expand '~' to home dir if EXPAND_UID
     tmp = ~abw/tmp       # as above, but home dir for user 'abw'
-    
+
     perl = $bin/perl     # expand value of 'bin' variable if EXPAND_VAR
     ripl = $(bin)/ripl   # as above with explicit parens
-    
+
     home = ${HOME}       # expand HOME environment var if EXPAND_ENV
 
 See L<AppConfig::State> for more information on expanding variable values.
@@ -834,7 +834,7 @@ file.
 
     [block1]
     foo = 10             # block1_foo = 10
-    
+
     [block2]
     foo = 20             # block2_foo = 20
 
@@ -891,13 +891,13 @@ is encountered.
 
     myprog -file /tmp/foo -file /tmp/bar # $config->file('/tmp/foo')
                                          # $config->file('/tmp/bar')
-    
+
     # file => [ '/tmp/foo', '/tmp/bar' ]
-    
+
     myprog -door "jim=Jim Morrison" -door "ray=Ray Manzarek"
                                     # $config->door("jim=Jim Morrison");
                                     # $config->door("ray=Ray Manzarek");
-    
+
     # door => { 'jim' => 'Jim Morrison', 'ray' => 'Ray Manzarek' }
 
 See L<AppConfig::Args> for further details on parsing command line
@@ -928,7 +928,7 @@ by a vertical bar '|') and the value of the ARGS parameter.
         ARGS  => "=i",
         ALIAS => "bar|baz",
     });
-    
+
     # Getopt::Long specification: "foo|bar|baz=i"
 
 Errors and warning generated by the Getopt::Long module are trapped and 
@@ -963,7 +963,7 @@ The AppConfig::CGI module automatically unescapes the CGI query string
 to restore the parameters to their intended values.
 
     http://where.com/mycgi?title=%22The+Wrong+Trousers%22
-    
+
     # $config->title('"The Wrong Trousers"');
 
 Please be considerate of the security implications of providing writeable

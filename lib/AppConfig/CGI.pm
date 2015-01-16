@@ -40,7 +40,7 @@ sub new {
         PEDANTIC => $state->_pedantic,     # and pedantic flags
     };
     bless $self, $class;
-        
+
     # call parse(@_) to parse any arg list passed 
     $self->parse(@_)
         if @_;
@@ -66,7 +66,7 @@ sub parse {
     my $query    = shift;
     my $warnings = 0;
     my ($variable, $value, $nargs);
-    
+
 
     # take a local copy of the state to avoid much hash dereferencing
     my ($state, $debug, $pedantic) = @$self{ qw( STATE DEBUG PEDANTIC ) };

@@ -44,7 +44,7 @@ BEGIN {
             getpwnam( defined $_[0] ? shift : '' );
         };
     }
-    
+
     # try out each METHOD to see if it's supported on this platform;
     # it's important we do this before defining AUTOLOAD which would
     # otherwise catch the unresolved call
@@ -67,7 +67,7 @@ BEGIN {
 
 sub new {
     my $class = shift;
-    
+
     my $self = {
         METHOD => \%METHOD,
         CAN    => \%CAN,
