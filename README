@@ -793,6 +793,9 @@ CONSTANT DEFINITIONS
 
         See AppConfig::State for full details of the use of these constants.
 
+REPOSITORY
+    <https://github.com/neilbowers/AppConfig>
+
 AUTHOR
     Andy Wardley, <abw@wardley.org>
 
