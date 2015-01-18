@@ -1026,6 +1026,10 @@ See AppConfig::State for full details of the use of these constants.
 
 =back
 
+=head1 REPOSITORY
+
+L<https://github.com/neilbowers/AppConfig>
+
 =head1 AUTHOR
 
 Andy Wardley, E<lt>abw@wardley.orgE<gt>

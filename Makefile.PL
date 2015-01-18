@@ -1,5 +1,11 @@
 use ExtUtils::MakeMaker;
 
+my $mm_ver = $ExtUtils::MakeMaker::VERSION;
+if ($mm_ver =~ /_/) { # dev version
+    $mm_ver = eval $mm_ver;
+    die $@ if $@;
+}
+
 my %config = (
     'NAME'	   => 'AppConfig',
     'VERSION_FROM' => 'lib/AppConfig.pm', # finds $VERSION
@@ -21,6 +27,21 @@ my %config = (
         'SUFFIX'   => 'gz',
         'PREOP'    => 'pod2text lib/AppConfig.pm > README',
     },
+
+    ($mm_ver <= 6.45
+        ? ()
+        : (META_MERGE => {
+            'meta-spec' => { version => 2 },
+            resources => {
+                repository  => {
+                    type => 'git',
+                    web  => 'https://github.com/neilbowers/AppConfig',
+                    url  => 'git://github.com/neilbowers/AppConfig.git',
+                },
+            },
+          })
+    ),
+
 );
 
 ## for PPD on win32
