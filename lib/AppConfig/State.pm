@@ -40,7 +40,7 @@ package AppConfig::State;
 use strict;
 use warnings;
 
-our $VERSION = '1.66_02';
+our $VERSION = '1.67';
 our $DEBUG   = 0;
 our $AUTOLOAD;
 

@@ -22,7 +22,7 @@ use strict;
 use warnings;
 use AppConfig::State;
 use Getopt::Long 2.17;
-our $VERSION = '1.66_02';
+our $VERSION = '1.67';
 
 
 #------------------------------------------------------------------------

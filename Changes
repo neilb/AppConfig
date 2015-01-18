@@ -1,5 +1,9 @@
 Revision history for Perl module AppConfig
 
+1.67 2015-01-18 NEILB
+    - Version bumped for a non-developer release, now I've sorted all
+      the pod issues.
+
 1.66_03 2015-01-16 NEILB
     - More pod & whitespace cleanup
 
