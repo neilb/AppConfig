@@ -4,13 +4,14 @@ Revision history for Perl module AppConfig
     - Version bumped for a non-developer release, now I've sorted all
       the pod issues.
     - Added github repo to metadata and pod
+    - Spelling corrections for docs. RT #84896.
 
 1.66_03 2015-01-16 NEILB
     - More pod & whitespace cleanup
 
 1.66_02 2015-01-15 NEILB
     - Getting pod fails from CPAN Testers for various recent versions
-      of Perl. There was an empty =item.
+      of Perl. There was an empty =item. RT #84318.
 
 1.66_01 2015-01-10 NEILB
     - First dev release, to check that everything's ok.

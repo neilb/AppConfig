@@ -401,7 +401,7 @@ See L<CONSTANT DEFINITIONS> below for more information on the constant
 tagsets defined by AppConfig.
 
 AppConfig is implemented using object-oriented methods.  A 
-new AppConfig object is created and initialised using the 
+new AppConfig object is created and initialized using the 
 new() method.  This returns a reference to a new AppConfig 
 object.
 
@@ -573,7 +573,7 @@ configuration files.  Constants in C<:expand> tag set define:
 =item VALIDATE
 
 Regex which the intended variable value should match or code reference 
-which returns 1 to indicate successful validaton (variable may now be set).
+which returns 1 to indicate successful validation (variable may now be set).
 
 =item ACTION
 
@@ -604,7 +604,7 @@ of the "=s" element (e.g. "=f").  The entire E<lt>argoptsE<gt> element
 is stored in the ARGS parameter for the variable and is passed intact to 
 Getopt::Long when the getopt() method is called.  
 
-The following examples demonstrate use of the comapct format, with their
+The following examples demonstrate use of the compact format, with their
 equivalent full specifications:
 
     $config->define("foo|bar|baz!");
@@ -886,7 +886,7 @@ the value of the argument following it.
     myprog -f /tmp/myfile                # $config->file('/tmp/file');
 
 Variables that expect multiple values (ARGCOUNT = ARGCOUNT_LIST or
-ARGCOUNT_HASH) will have sucessive values added each time the option
+ARGCOUNT_HASH) will have successive values added each time the option
 is encountered.
 
     myprog -file /tmp/foo -file /tmp/bar # $config->file('/tmp/foo')
@@ -920,7 +920,7 @@ default.
 See Getopt::Long for details of the configuration options available.
 
 The getopt() method constructs a specification string for each internal
-variable and then initialises Getopt::Long with these values.  The
+variable and then initializes Getopt::Long with these values.  The
 specification string is constructed from the name, any aliases (delimited
 by a vertical bar '|') and the value of the ARGS parameter.
 
@@ -966,7 +966,7 @@ to restore the parameters to their intended values.
 
     # $config->title('"The Wrong Trousers"');
 
-Please be considerate of the security implications of providing writeable
+Please be considerate of the security implications of providing writable
 access to script variables via CGI.
 
     http://rebel.alliance.com/cgi-bin/...
@@ -974,7 +974,7 @@ access to script variables via CGI.
 
 To avoid any accidental or malicious changing of "private" variables, 
 define only the "public" variables before calling the cgi() (or any 
-other) method.  Further variables can subequently be defined which 
+other) method.  Further variables can subsequently be defined which 
 can not be influenced by the CGI parameters.
 
     $config->define('verbose', 'debug')
@@ -1049,7 +1049,7 @@ under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
-AppConfig::State, AppConfig::File, AppConfig::Args, AppConfig::Getopt,
-AppConfig::CGI, Getopt::Long
+L<AppConfig::State>, L<AppConfig::File>, L<AppConfig::Args>, L<AppConfig::Getopt>,
+L<AppConfig::CGI>, L<Getopt::Long>
 
 =cut
