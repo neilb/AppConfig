@@ -1,10 +1,14 @@
 Revision history for Perl module AppConfig
 
+1.68 2015-02-03 NEILB
+    - Spelling corrections for docs. RT #84896. ASB++
+    - Added pod release-time test. ASB++
+    - Added links to entries in SEE ALSO. ASB++
+
 1.67 2015-01-18 NEILB
     - Version bumped for a non-developer release, now I've sorted all
       the pod issues.
     - Added github repo to metadata and pod
-    - Spelling corrections for docs. RT #84896.
 
 1.66_03 2015-01-16 NEILB
     - More pod & whitespace cleanup

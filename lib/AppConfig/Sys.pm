@@ -19,7 +19,7 @@ use strict;
 use warnings;
 use POSIX qw( getpwnam getpwuid );
 
-our $VERSION = '1.67';
+our $VERSION = '1.68';
 our ($AUTOLOAD, $OS, %CAN, %METHOD);
 
 
