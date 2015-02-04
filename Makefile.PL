@@ -49,6 +49,11 @@ my %config = (
             'Test::Pod' => '1.0',
         })
     ),
+
+    ($mm_ver <= 6.31
+        ? ()
+        : (LICENSE => [ 'perl_5' ])
+    ),
     
 );
 
