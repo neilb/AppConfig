@@ -642,7 +642,7 @@ Additional configuration options may be specified by hash reference, as per
 normal.  The compact definition format will override any configuration 
 values provided for ARGS and ARGCOUNT.
 
-    $config->define("file|filelist|f=s@", { VALIDATE = \&check_file() } );
+    $config->define("file|filelist|f=s@", { VALIDATE => \&check_file() } );
 
 =head2 READING AND MODIFYING VARIABLE VALUES
 
