@@ -1,5 +1,9 @@
 Revision history for Perl module AppConfig
 
+1.69 2015-02-12 NEILB
+    - License type added to metadata. ASB++
+    - Fixed typo in code example. ASB++
+
 1.68 2015-02-03 NEILB
     - Spelling corrections for docs. RT #84896. ASB++
     - Added pod release-time test. ASB++

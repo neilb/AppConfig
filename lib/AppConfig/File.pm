@@ -17,7 +17,7 @@ use strict;
 use warnings;
 use AppConfig;
 use AppConfig::State;
-our $VERSION = '1.68';
+our $VERSION = '1.69';
 
 
 #------------------------------------------------------------------------
