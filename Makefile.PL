@@ -25,7 +25,6 @@ my %config = (
     'dist' => {
         'COMPRESS' => 'gzip',
         'SUFFIX'   => 'gz',
-        'PREOP'    => 'pod2text lib/AppConfig.pm > README',
     },
 
     ($mm_ver <= 6.45
