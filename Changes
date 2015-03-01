@@ -33,8 +33,8 @@ Revision history for Perl module AppConfig
 1.65 2007-05-30 ABW
     - Changed meaning of '~' interpolation to mean $ENV{HOME} rather than
       $ENV{HOME} or wherever File::HomeDir thinks your home directory is.
-      This allows us to remove the dependency on File::HomeDir which was 
-      causing insallation problems (particularly on Mac OSX), and led to 
+      This allows us to remove the dependency on File::HomeDir which was
+      causing insallation problems (particularly on Mac OSX), and led to
       a long dependency chain for AppConfig and other modules that rely on
       it (like Template Toolkit).
 
@@ -67,16 +67,16 @@ Revision history for Perl module AppConfig
       is now equivalent to '-foo bar'.
     - Added AppConfig::CGI module to parse CGI script parameters.
     - Added cgi() delegate method to AppConfig to instantiate and call
-      AppConfig::CGI.  
+      AppConfig::CGI.
     - Added CGI documentation and cleaned up copious typos, grammos and
       thinkos.
     - Applied documentation patches from Tim Mooney.
-    - Fixed missing '>' tyop which caused POD to complain.  Thanks to 
+    - Fixed missing '>' tyop which caused POD to complain.  Thanks to
       David Cantrell and many others for reporting it.
     - Applied patch from Steven McDowall to provide default options
       for LIST and HASH data types.
     - Applied patch from Robert Goff to allow '$' to be escaped (e.g. \$)
-      to suppress variable expansion in files. 
+      to suppress variable expansion in files.
     - Applied patch from John Salmon to allow comments to appear anywhere
       on a line, not just at the beginning.
 
@@ -91,10 +91,10 @@ Revision history for Perl module AppConfig
       Thus, AppConfig::Getopt should continue with future versions of
       Getopt::Long.  Nice one, Johan!
     - Added code to AppConfig::State::define() to handle the compact format.
-      The ALIAS and ARGS options are extracted from it and the ARGCOUNT 
+      The ALIAS and ARGS options are extracted from it and the ARGCOUNT
       is determined from the ARGS parameter.
     - Added Getopt::Long version 2.17 as a dependency in Makefile.PL.
-      Added documentation to note this and explain how to modify the 
+      Added documentation to note this and explain how to modify the
       Makefile.PL to avoid this check.
     - Added t/compact.t and expanded t/getopt.t test files.
     - Added documentation for AppConfig::Getopt use and the compact definition
@@ -105,12 +105,12 @@ Revision history for Perl module AppConfig
 1.51 1998-10-22 ABW
     - Added '+variable' (set on) and '-variable' (reset to 0 or default)
       syntax for configuration files, as suggested by Chip Salzenberg.
-    - Fixed auto-creation of variables that was generating two warning 
+    - Fixed auto-creation of variables that was generating two warning
       messages each time.
-    - Removed some straggling references to the AppConfig::Const module. 
+    - Removed some straggling references to the AppConfig::Const module.
     - Changed Makefile.PL to explicitly list MAN3PODS for all AppConfig::*
-      modules.  ExtUtils::MakeMaker ignores files that match the pattern 
-      /(config|setup).*\.pm/i;  Thanks to Alex Medina for catching that.  
+      modules.  ExtUtils::MakeMaker ignores files that match the pattern
+      /(config|setup).*\.pm/i;  Thanks to Alex Medina for catching that.
 
 1.50 1998-10-21 ABW
     - Completed documentation.
