@@ -784,7 +784,7 @@ previously set values for the variable.
 
 A reference to a list of values is returned when the variable is requested.
 
-    my $beverages = $config->drinks();
+    my $beverages = $config->drink();
     print join(", ", @$beverages);      # prints "coffee, tea"
 
 Variables may also be defined as hash lists (ARGCOUNT = ARGCOUNT_HASH).
