@@ -3,6 +3,7 @@ Revision history for Perl module AppConfig
 1.70 2015-03-01 NEILB
     - Some trailing spaces removed. SHLOMIF++
     - Min perl specified in the dist metadata. SHLOMIF++
+    - Scoped declaration of $_ to fix warning. RT#68068 CELOGEEK++
 
 1.69 2015-02-12 NEILB
     - License type added to metadata. ASB++

@@ -140,6 +140,7 @@ sub parse {
         # initialise $prefix to nothing (no [block])
         $prefix = '';
 
+        local $_;
         while (<$handle>) {
             chomp;
 
