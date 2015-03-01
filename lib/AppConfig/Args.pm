@@ -15,7 +15,7 @@ package AppConfig::Args;
 use strict;
 use warnings;
 use AppConfig::State;
-our $VERSION = '1.69';
+our $VERSION = '1.70';
 
 
 #------------------------------------------------------------------------
