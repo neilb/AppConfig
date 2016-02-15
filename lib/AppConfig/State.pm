@@ -1259,7 +1259,7 @@ Example:
         my $var   = shift;
         my $val   = shift;
 
-        print "$variable set to $value";
+        print "$var set to $val";
     }
 
     $state->foo(42);        # prints "foo set to 42"
