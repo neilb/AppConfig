@@ -43,10 +43,7 @@ my %config = (
 
     ($mm_ver <= 6.45
         ? ()
-        : (TEST_REQUIRES => {
-            # optional modules only required for testing
-            'Test::Pod' => '1.0',
-        })
+        : (TEST_REQUIRES => {})
     ),
 
     ($mm_ver < 6.48
