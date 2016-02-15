@@ -147,19 +147,14 @@ sub _getopt_state {
     foreach $var (keys %{ $self->{ VARIABLE } }) {
         $spec  = join('|', $var, @{ $self->{ ALIASES }->{ $var } || [ ] });
 
-        # an ARGS value is used, if specified
-        unless (defined ($args = $self->{ ARGS }->{ $var })) {
-            # otherwise, construct a basic one from ARGCOUNT
-            ARGCOUNT: {
-                last ARGCOUNT unless 
-                    defined ($argcount = $self->{ ARGCOUNT }->{ $var });
+        $argcount = $self->{ ARGCOUNT }->{ $var };
 
-                $args = "=s",  last ARGCOUNT if $argcount eq ARGCOUNT_ONE;
-                $args = "=s@", last ARGCOUNT if $argcount eq ARGCOUNT_LIST;
-                $args = "=s%", last ARGCOUNT if $argcount eq ARGCOUNT_HASH;
+        ARGCOUNT: {
+          $argcount eq ARGCOUNT_ONE  and $args = "=s",  last ARGCOUNT;
+          $argcount eq ARGCOUNT_LIST and $args = "=s@", last ARGCOUNT;
+          $argcount eq ARGCOUNT_HASH and $args = "=s@", last ARGCOUNT;
                 $args = "!";
             }
-        }
         $spec .= $args if defined $args;
 
         push(@specs, $spec, $linkage);

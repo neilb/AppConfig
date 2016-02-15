@@ -21,7 +21,7 @@ use vars qw($loaded);
 
 BEGIN { 
     $| = 1; 
-    print "1..10\n"; 
+    print "1..13\n"; 
 }
 
 END {
@@ -76,6 +76,13 @@ my $config = AppConfig->new({
 	VALIDATE => '\d+',
 	                               # NOTE: Getopt::Long args 
 				       # constructed automatically
+    },
+    'alias' => {
+  ARGCOUNT => ARGCOUNT_HASH
+    },
+    'define' => {
+  ALIAS    => 'D',
+  ARGS     => '=s%'
     });
 
 #2: test the AppConfig got instantiated correctly
@@ -102,4 +109,12 @@ ok( $config->getopt() );
 ok( $config->age() == ($age * 2) );
 ok( $ARGV[0] eq $notarg );
 
+my @hash_args = ('--alias', 'foo=bar', '--define', 'verbose=loud');
 
+#11 - #13: check ARGCOUNT_HASH
+# $config->_debug(1);
+ok( $config->getopt(qw(default auto_abbrev), \@hash_args) );
+# $config->_debug(0);
+
+ok( $config->get('alias')->{foo}      eq 'bar'  );
+ok( $config->get('define')->{verbose} eq 'loud' );
