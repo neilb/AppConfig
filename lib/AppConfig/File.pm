@@ -565,8 +565,8 @@ or following one or more whitespace tokens, and continue to the end of
 the line.
 
     # this is a comment
-    foo = bar               # so is this
-    url = index.html#hello  # this too, but not the '#welcome'
+    foo = bar                 # so is this
+    url = index.html#welcome  # this too, but not the '#welcome'
 
 Notice how the '#welcome' part of the URL is not treated as a comment
 because a whitespace character doesn't precede it.  
